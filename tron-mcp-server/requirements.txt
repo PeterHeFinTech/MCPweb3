@@ -1,17 +1,24 @@
 # TRON MCP Server 依赖
+# Python >= 3.10 recommended
 
-# MCP SDK
+# MCP SDK (核心)
 mcp>=1.0.0
 
 # HTTP 客户端
 httpx>=0.24.0
 
-# 环境变量
+# 环境变量加载
 python-dotenv>=1.0.0
 
-# SSE 模式 HTTP 服务器
+# SSE 模式依赖
 uvicorn>=0.20.0
+starlette>=0.27.0
+sse-starlette>=1.0.0
 
-# 开发依赖
+# Pydantic (MCP 依赖)
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# 开发依赖 (可选)
 pytest>=7.0.0
 pytest-asyncio>=0.21.0

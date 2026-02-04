@@ -20,6 +20,9 @@
   - 将项目管理相关文件（`Tasks/`, `PRD.md`, `Questions*.md`, `*-Report.md` 等）设为忽略，防止非生产代码上传至 GitHub 仓库。
 - **SSE 服务部署验证**：
   - 在服务器上验证了 SSE 模式运行，修正了端口占用的问题，成功在 `http://127.0.0.1:8766/sse` 启动。
+- **可复现性优化**：
+  - 更新 `requirements.txt`：补充 SSE 依赖 (starlette, sse-starlette)、Pydantic 依赖、添加 Python 版本说明。
+  - 更新 `README.md`：修复 activate 命令错误、区分 Windows/Unix 安装步骤、添加详细的 Cursor 配置说明、添加端口占用提示。
 - **技能逻辑统一**：
   - 更新 `skills.py` 模块，新增版本号并结构化技能清单。
   - 统一 `call_router.py` 的技能分发逻辑，支持更完整的“渐进式披露”。
