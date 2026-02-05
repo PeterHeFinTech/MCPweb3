@@ -4,6 +4,7 @@ import os
 import hashlib
 from typing import Optional
 import httpx
+import base58
 
 # USDT TRC20 合约地址
 USDT_CONTRACT_BASE58 = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
@@ -84,26 +85,9 @@ def _normalize_txid(txid: str) -> str:
 
 
 def _hex_to_base58(hex_addr: str) -> str:
+    """将十六进制地址转换为 Base58Check 格式"""
     raw = bytes.fromhex(hex_addr)
-    checksum = hashlib.sha256(hashlib.sha256(raw).digest()).digest()[:4]
-    return _b58encode(raw + checksum)
-
-
-def _b58encode(data: bytes) -> str:
-    alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-    num = int.from_bytes(data, "big")
-    encoded = ""
-    while num > 0:
-        num, rem = divmod(num, 58)
-        encoded = alphabet[rem] + encoded
-    # leading zeros
-    pad = 0
-    for byte in data:
-        if byte == 0:
-            pad += 1
-        else:
-            break
-    return "1" * pad + (encoded or "1")
+    return base58.b58encode_check(raw).decode('utf-8')
 
 
 def get_usdt_balance(address: str) -> float:

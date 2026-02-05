@@ -2,6 +2,7 @@
 
 import time
 import hashlib
+import base58
 from . import tron_client
 from . import validators
 
@@ -33,7 +34,18 @@ def _get_ref_block() -> tuple:
 def _encode_transfer(to: str, amount: int) -> str:
     """编码 TRC20 transfer 函数调用"""
     method_sig = "a9059cbb"
-    addr_hex = to.zfill(64)
+    
+    # 1. Base58 解码 -> Hex
+    raw_bytes = base58.b58decode_check(to)
+    hex_addr = raw_bytes.hex()
+    
+    # 2. 去掉 '41' 前缀 (TRON 地址前缀)
+    if hex_addr.startswith('41'):
+        hex_addr = hex_addr[2:]
+    
+    # 3. 补齐到 64 字符 (32字节)
+    addr_hex = hex_addr.zfill(64)
+    
     amount_hex = hex(amount)[2:].zfill(64)
     return method_sig + addr_hex + amount_hex
 
