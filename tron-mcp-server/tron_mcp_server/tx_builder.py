@@ -342,6 +342,50 @@ def check_recipient_status(to_address: str) -> dict:
     }
 
 
+def check_recipient_security(to_address: str) -> dict:
+    """
+    检查接收方地址是否被 TRONSCAN 标记为恶意地址
+    
+    这是 Phase 2 安全性开发的核心功能：
+    集成 TRONSCAN 官方黑名单数据，识别恶意地址（如诈骗、钓鱼等）
+    
+    Args:
+        to_address: 接收方 TRON 地址
+    
+    Returns:
+        包含安全检查结果的字典:
+        - checked: 是否成功完成检查
+        - is_risky: 地址是否被标记为恶意
+        - risk_type: 风险类型
+        - security_warning: 高优先级安全警告 (仅当 is_risky=True)
+    """
+    try:
+        risk_info = tron_client.check_account_risk(to_address)
+    except Exception as e:
+        logging.warning(f"安全检查失败 ({to_address}): {e}")
+        return {
+            "checked": False,
+            "is_risky": False,
+            "risk_type": "Unknown",
+            "security_warning": None,
+        }
+    
+    is_risky = risk_info.get("is_risky", False)
+    risk_type = risk_info.get("risk_type", "Unknown")
+    
+    security_warning = None
+    if is_risky:
+        security_warning = f"⛔ 严重安全警告: 接收方地址被 TRONSCAN 标记为 【{risk_type}】。转账极可能导致资产丢失！"
+    
+    return {
+        "checked": True,
+        "is_risky": is_risky,
+        "risk_type": risk_type,
+        "detail": risk_info.get("detail"),
+        "security_warning": security_warning,
+    }
+
+
 def build_unsigned_tx(
     from_address: str,
     to_address: str,
@@ -349,6 +393,7 @@ def build_unsigned_tx(
     token: str = "USDT",
     check_recipient: bool = True,
     check_balance: bool = True,
+    check_security: bool = True,
 ) -> dict:
     """
     构建未签名交易
@@ -361,11 +406,14 @@ def build_unsigned_tx(
         check_recipient: 是否检查接收方账户状态 (默认 True)
         check_balance: 是否预先检查发送方余额 (默认 True)
             启用后会在构建交易前检查余额，拒绝必死交易以节省 Gas
+        check_security: 是否检查接收方地址安全性 (默认 True)
+            启用后会检查接收方是否在 TRONSCAN 黑名单中
 
     Returns:
         TRON 标准未签名交易结构 (txID + raw_data)
         如果是 TRC20 转账且 check_recipient=True，还会包含接收方账户预警信息
         如果 check_balance=True，还会包含发送方余额检查结果
+        如果 check_security=True 且接收方为恶意地址，还会包含 security_warning
 
     Raises:
         ValueError: 参数无效时抛出
@@ -377,6 +425,11 @@ def build_unsigned_tx(
     token_upper = token.upper()
     if token_upper not in ("USDT", "TRX"):
         raise ValueError(f"不支持的代币类型: {token}")
+
+    # Phase 2: 安全性检查 - 检查接收方地址是否被标记为恶意
+    security_check = None
+    if check_security:
+        security_check = check_recipient_security(to_address)
 
     # 策略二：预先检查发送方余额，拒绝必死交易
     # 在 Builder 阶段拦截余额不足的交易是 0 成本的
@@ -394,6 +447,13 @@ def build_unsigned_tx(
         result = _trigger_smart_contract(to_address, amount, from_address, token_upper)
     else:
         result = _build_trx_transfer(from_address, to_address, amount)
+    
+    # 将安全检查结果添加到返回值
+    if security_check:
+        result["security_check"] = security_check
+        # 如果检测到恶意地址，添加高优先级警告到顶层
+        if security_check.get("security_warning"):
+            result["security_warning"] = security_check["security_warning"]
     
     # 将发送方余额检查结果添加到返回值
     if sender_check:

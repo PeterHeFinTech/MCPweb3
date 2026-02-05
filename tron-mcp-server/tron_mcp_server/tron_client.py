@@ -225,6 +225,45 @@ def get_latest_block_info() -> dict:
     }
 
 
+def check_account_risk(address: str) -> dict:
+    """
+    Checks if a wallet address is flagged with a 'redTag' on TRONSCAN.
+    Source Endpoint: https://apilist.tronscanapi.com/api/multiple/chain/query
+    
+    Args:
+        address: TRON 地址 (Base58Check 格式)
+    
+    Returns:
+        包含风险信息的字典:
+        - is_risky: 地址是否被标记为恶意
+        - risk_type: 风险类型 (e.g. "Scam", "Phishing") 或 "Safe"/"Unknown"
+        - detail: 详细说明 (仅当 is_risky=True 时)
+    """
+    url = "https://apilist.tronscanapi.com/api/multiple/chain/query"
+    params = {"address": _normalize_address(address)}
+    headers = {"accept": "application/json"}
+    
+    try:
+        response = httpx.get(url, params=params, headers=headers, timeout=TIMEOUT)
+        data = response.json()
+        
+        # 核心判断逻辑
+        red_tag = data.get("redTag", "")
+        
+        if red_tag:
+            return {
+                "is_risky": True,
+                "risk_type": red_tag,  # e.g. "Scam", "Phishing"
+                "detail": f"TRONSCAN flagged this address as {red_tag}",
+            }
+        else:
+            return {"is_risky": False, "risk_type": "Safe"}
+            
+    except Exception as e:
+        print(f"[Warning] Risk check API failed: {e}")
+        return {"is_risky": False, "risk_type": "Unknown"}
+
+
 def get_account_status(address: str) -> dict:
     """
     检查账户激活状态
