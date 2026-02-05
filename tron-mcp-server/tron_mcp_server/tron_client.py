@@ -7,8 +7,9 @@ import httpx
 import base58
 
 # USDT TRC20 合约地址
-USDT_CONTRACT_BASE58 = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
-USDT_CONTRACT_HEX = "0x41a614f803b6fd780986a42c78ec9c7f77e6ded13c"
+# Default to Mainnet if not set
+USDT_CONTRACT_BASE58 = os.getenv("USDT_CONTRACT_ADDRESS", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
+USDT_CONTRACT_HEX = os.getenv("USDT_CONTRACT_ADDRESS_HEX", "0x41a614f803b6fd780986a42c78ec9c7f77e6ded13c")
 
 # 默认 TRONSCAN API URL
 DEFAULT_API_URL = "https://apilist.tronscan.org/api"

@@ -1,5 +1,6 @@
 """交易构建模块 - 构造未签名交易"""
 
+import os
 import time
 import hashlib
 import base58
@@ -8,7 +9,8 @@ from . import validators
 
 
 # USDT TRC20 合约地址
-USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+# Default to Mainnet if not set
+USDT_CONTRACT = os.getenv("USDT_CONTRACT_ADDRESS", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
 
 
 def _timestamp_ms() -> int:
