@@ -10,7 +10,26 @@
 
 本次迭代重点针对 **Gas 优化 (Gas Optimization)** 和 **交易安全性 (Transaction Safety)** 进行了重大升级，后端模块现已具备生产级 (Production-Ready) 的防错能力。
 
-#### 1. 新增特性：Gas 卫士 (Gas Guard / Anti-Revert)
+#### 1. 新增特性：安全审计 (Security Audit / Anti-Fraud)
+
+- **模块位置**:
+  - `tron_mcp_server/tron_client.py` → `check_account_risk`（底层 API 调用）
+  - `tron_mcp_server/tx_builder.py` → `check_recipient_security`（业务逻辑封装）
+- **功能描述**: 集成 TRONSCAN 官方黑名单 API，在构建交易前识别接收方地址是否被标记为恶意地址
+- **数据源**: TRONSCAN `https://apilist.tronscanapi.com/api/multiple/chain/query`，检查 `redTag` 字段
+- **风险类型**: 支持识别 Scam（诈骗）、Phishing（钓鱼）等多种恶意标记
+- **安全措施**:
+  - `risk_type` 经过清洗处理（仅保留字母数字和空格，最大 50 字符），防止注入攻击
+  - API 调用失败时返回 `is_risky: False`，避免阻塞正常交易
+- **返回结构**:
+  ```python
+  # 检测到恶意地址时
+  result["security_warning"]  # "⛔ 严重安全警告: 接收方地址被 TRONSCAN 标记为 【Scam】。转账极可能导致资产丢失！"
+  result["security_check"]    # {"checked": True, "is_risky": True, "risk_type": "Scam", "detail": "..."}
+  ```
+- **价值**: 在交易构建阶段预警用户，避免向已知恶意地址转账导致资产损失
+
+#### 2. 新增特性：Gas 卫士 (Gas Guard / Anti-Revert)
 
 - **模块位置**: `tron_mcp_server/tx_builder.py` → `check_sender_balance`
 - **功能描述**: 在构建交易前，强制检查发送方的余额状态
@@ -19,7 +38,7 @@
   - 还预估并检查 TRX 余额是否足够支付网络手续费（Estimated Gas）
 - **价值**: 从源头拦截"必死交易"，防止因余额不足导致交易上链失败（Revert）而白白浪费 Gas
 
-#### 2. 新增特性：接收方状态检测 (Recipient Status Check)
+#### 3. 新增特性：接收方状态检测 (Recipient Status Check)
 
 - **模块位置**:
   - `tron_mcp_server/tron_client.py` → `get_account_status`（底层支持）
@@ -27,13 +46,13 @@
 - **功能描述**: 在构建 USDT 转账交易时，自动识别接收方地址是否为"未激活"状态
 - **价值**: 提示用户向未激活账户转账会有额外的高额能量消耗（Energy Cost for Account Creation），避免意外的高成本支出
 
-#### 3. 用户体验优化：交易有效期延长 (Expiration Extension)
+#### 4. 用户体验优化：交易有效期延长 (Expiration Extension)
 
 - **模块位置**: `tron_mcp_server/tx_builder.py`
 - **变更**: 将交易的 `expiration` 时间从 1 分钟 (60s) 延长至 **10 分钟 (600s)**
 - **原因**: 考虑到 Hackathon 演示及人工签名的延迟，留出更充足的时间窗口，防止交易在签名或广播前超时失效
 
-#### 4. 架构决策：轻量级 TxID
+#### 5. 架构决策：轻量级 TxID
 
 - **说明**: 确认保留使用 `hashlib.sha256` 生成本地临时 txID 的方案
 - **原因**: 作为未签名交易构建器 (Unsigned Tx Builder)，此方案在保证唯一性的前提下避免了引入沉重的 protobuf 依赖，符合 Hackathon 项目轻量化、快速迭代的要求

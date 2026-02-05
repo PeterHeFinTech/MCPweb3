@@ -53,6 +53,7 @@
 - 🛡️ **Gas 卫士 (Anti-Revert)**：在构建交易前强制检查发送方余额，预估 Gas 费用，拦截"必死交易"
 - 👤 **接收方状态检测**：自动识别接收方地址是否为未激活状态，提示额外能量消耗
 - ⏰ **交易有效期延长**：交易过期时间延长至 10 分钟，为人工签名提供充足时间窗口
+- 🔒 **安全审计 (Anti-Fraud)**：集成 TRONSCAN 官方黑名单 API，在构建交易前识别恶意地址（诈骗、钓鱼等），保护用户资产安全
 
 ## 快速开始
 
@@ -314,6 +315,7 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
 - 🛡️ **Gas Guard (Anti-Revert)**: Pre-validates sender balance and estimated gas before building transactions to prevent doomed transactions
 - 👤 **Recipient Status Check**: Automatically detects if recipient address is unactivated, warns about extra energy costs
 - ⏰ **Extended Expiration**: Transaction expiration extended to 10 minutes, providing sufficient time for manual signing
+- 🔒 **Security Audit (Anti-Fraud)**: Integrates TRONSCAN official blacklist API to identify malicious addresses (Scam, Phishing, etc.) before transaction construction, protecting user assets
 
 <a name="quick-start-en"></a>
 
