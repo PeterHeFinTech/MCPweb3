@@ -50,6 +50,9 @@
 - ⛽ **Gas 参数**：获取当前网络 Gas 价格
 - 📊 **交易状态**：查询交易确认状态
 - 🏗️ **交易构建**：构建未签名 USDT/TRX 转账交易
+- 🛡️ **Gas 卫士 (Anti-Revert)**：在构建交易前强制检查发送方余额，预估 Gas 费用，拦截"必死交易"
+- 👤 **接收方状态检测**：自动识别接收方地址是否为未激活状态，提示额外能量消耗
+- ⏰ **交易有效期延长**：交易过期时间延长至 10 分钟，为人工签名提供充足时间窗口
 
 ## 快速开始
 
@@ -308,6 +311,9 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
 - ⛽ **Gas Parameters**: Get current network gas prices
 - 📊 **Transaction Status**: Query transaction confirmation status
 - 🏗️ **Transaction Building**: Build unsigned USDT/TRX transfer transactions
+- 🛡️ **Gas Guard (Anti-Revert)**: Pre-validates sender balance and estimated gas before building transactions to prevent doomed transactions
+- 👤 **Recipient Status Check**: Automatically detects if recipient address is unactivated, warns about extra energy costs
+- ⏰ **Extended Expiration**: Transaction expiration extended to 10 minutes, providing sufficient time for manual signing
 
 <a name="quick-start-en"></a>
 

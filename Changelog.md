@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-02-05
+
+### 核心特性：Gas 优化与交易安全性
+
+本次迭代重点针对 **Gas 优化 (Gas Optimization)** 和 **交易安全性 (Transaction Safety)** 进行了重大升级，后端模块现已具备生产级 (Production-Ready) 的防错能力。
+
+#### 1. 新增特性：Gas 卫士 (Gas Guard / Anti-Revert)
+
+- **模块位置**: `tron_mcp_server/tx_builder.py` → `check_sender_balance`
+- **功能描述**: 在构建交易前，强制检查发送方的余额状态
+- **逻辑**: 
+  - 不仅检查转账代币（如 USDT）是否充足
+  - 还预估并检查 TRX 余额是否足够支付网络手续费（Estimated Gas）
+- **价值**: 从源头拦截"必死交易"，防止因余额不足导致交易上链失败（Revert）而白白浪费 Gas
+
+#### 2. 新增特性：接收方状态检测 (Recipient Status Check)
+
+- **模块位置**:
+  - `tron_mcp_server/tron_client.py` → `get_account_status`（底层支持）
+  - `tron_mcp_server/tx_builder.py` → `check_recipient_status`（业务逻辑）
+- **功能描述**: 在构建 USDT 转账交易时，自动识别接收方地址是否为"未激活"状态
+- **价值**: 提示用户向未激活账户转账会有额外的高额能量消耗（Energy Cost for Account Creation），避免意外的高成本支出
+
+#### 3. 用户体验优化：交易有效期延长 (Expiration Extension)
+
+- **模块位置**: `tron_mcp_server/tx_builder.py`
+- **变更**: 将交易的 `expiration` 时间从 1 分钟 (60s) 延长至 **10 分钟 (600s)**
+- **原因**: 考虑到 Hackathon 演示及人工签名的延迟，留出更充足的时间窗口，防止交易在签名或广播前超时失效
+
+#### 4. 架构决策：轻量级 TxID
+
+- **说明**: 确认保留使用 `hashlib.sha256` 生成本地临时 txID 的方案
+- **原因**: 作为未签名交易构建器 (Unsigned Tx Builder)，此方案在保证唯一性的前提下避免了引入沉重的 protobuf 依赖，符合 Hackathon 项目轻量化、快速迭代的要求
+
+---
+
 ## 2026-02-04
 
 ### 缺陷修复
