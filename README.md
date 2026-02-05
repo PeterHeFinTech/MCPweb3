@@ -176,6 +176,35 @@ python -m tron_mcp_server.server --sse
 - **传输协议**: stdio（默认）/ SSE（`--sse` 启动）
 - **默认端口**: 8765（SSE 模式，可通过 `MCP_PORT` 环境变量修改）
 
+## 🔒 安全审计 (Anti-Fraud)
+
+本服务集成了 TRONSCAN 官方安全 API，在构建交易前自动检测接收方地址的风险状态，保护用户资产安全。
+
+### 检测来源
+
+| API | 端点 | 用途 |
+|-----|------|------|
+| Account Detail API | `/api/accountv2` | 获取地址标签（redTag, greyTag, blueTag, publicTag）和用户投诉状态 |
+| Security Service API | `/api/security/account/data` | 获取黑名单状态、欺诈交易记录、假币创建者等行为指标 |
+
+### 风险指标
+
+| 指标 | 风险等级 | 说明 |
+|------|----------|------|
+| 🔴 redTag | 高危 | TRONSCAN 官方标记的诈骗/钓鱼地址 |
+| ⚪ greyTag | 存疑 | 存在争议或可疑行为的地址 |
+| ⚠️ feedbackRisk | 用户投诉 | 存在多起用户举报 |
+| 💀 is_black_list | 黑名单 | 被 USDT/稳定币发行方列入黑名单 |
+| 💸 has_fraud_transaction | 欺诈历史 | 曾有欺诈交易记录 |
+| 🪙 fraud_token_creator | 假币创建者 | 创建过假冒代币 |
+| 📢 send_ad_by_memo | 垃圾账号 | 通过 memo 发送广告的垃圾账号 |
+
+### 使用建议
+
+1. **构建交易前**：`tron_build_tx` 工具会自动调用安全检查，若检测到风险会返回警告
+2. **手动查询**：可通过 `check_account_risk(address)` 函数主动查询任意地址的风险状态
+3. **API Key 配置**：建议在 `.env` 文件中配置 `TRONSCAN_API_KEY` 以获得更高的 API 调用限额，避免因限流（Rate Limit）导致问题
+
 ---
 
 ## 常见问题 FAQ
@@ -445,6 +474,35 @@ Edit `claude_desktop_config.json`:
 - **Main Endpoints**: account, chainparameters, transaction-info, block
 - **Transport Protocol**: stdio (default) / SSE (`--sse` startup)
 - **Default Port**: 8765 (SSE mode, configurable via `MCP_PORT` environment variable)
+
+## 🔒 Security Audit (Anti-Fraud)
+
+This service integrates TRONSCAN official security APIs to automatically detect risk status of recipient addresses before building transactions, protecting user assets.
+
+### Detection Sources
+
+| API | Endpoint | Purpose |
+|-----|----------|---------|
+| Account Detail API | `/api/accountv2` | Get address tags (redTag, greyTag, blueTag, publicTag) and user complaint status |
+| Security Service API | `/api/security/account/data` | Get blacklist status, fraud transaction history, fake token creator, etc. |
+
+### Risk Indicators
+
+| Indicator | Risk Level | Description |
+|-----------|------------|-------------|
+| 🔴 redTag | High Risk | TRONSCAN officially flagged scam/phishing address |
+| ⚪ greyTag | Suspicious | Address with disputed or suspicious behavior |
+| ⚠️ feedbackRisk | User Reported | Multiple user complaints exist |
+| 💀 is_black_list | Blacklisted | Blacklisted by USDT/stablecoin issuers |
+| 💸 has_fraud_transaction | Fraud History | Has fraud transaction history |
+| 🪙 fraud_token_creator | Fake Token Creator | Has created fraudulent tokens |
+| 📢 send_ad_by_memo | Spam Account | Spam account that sends advertisements via memo |
+
+### Usage Recommendations
+
+1. **Before Building Transactions**: The `tron_build_tx` tool automatically calls security checks and returns warnings if risks are detected
+2. **Manual Query**: Use `check_account_risk(address)` function to actively query risk status of any address
+3. **API Key Configuration**: It's recommended to configure `TRONSCAN_API_KEY` in `.env` file to get higher API call limits and avoid rate limiting issues
 
 <a name="faq-en"></a>
 
