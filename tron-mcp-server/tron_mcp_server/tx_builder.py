@@ -130,11 +130,69 @@ def _build_trx_transfer(from_addr: str, to_addr: str, amount: float) -> dict:
     return {"txID": tx_id, "raw_data": raw_data}
 
 
+def check_recipient_status(to_address: str) -> dict:
+    """
+    检查接收方账户状态，返回预警信息
+    
+    用于检测：
+    1. 向未激活地址转账 TRC20 会消耗更多 Energy（SSTORE 指令）
+    2. 如果接收方没有 TRX，可能无法转出收到的代币
+    
+    Returns:
+        包含预警信息的字典
+    """
+    try:
+        account_status = tron_client.get_account_status(to_address)
+    except Exception as e:
+        # 如果查询失败，记录错误信息并返回未知状态，不阻止交易
+        import logging
+        logging.warning(f"检查接收方账户状态失败 ({to_address}): {e}")
+        return {
+            "checked": False,
+            "warnings": [],
+            "warning_message": None,
+        }
+    
+    warnings = []
+    
+    # 检查账户是否未激活
+    # 默认为 False (未激活)，保守处理：如果无法确定状态，假设未激活
+    if not account_status.get("is_activated", False):
+        warnings.append({
+            "code": "unactivated_recipient",
+            "message": "接收方账户未激活，转账 TRC20 将消耗更多 Energy（约 65000 额外能量）",
+            "severity": "warning",
+        })
+    
+    # 检查接收方是否没有 TRX
+    # 默认为 False (没有 TRX)，保守处理：如果无法确定状态，假设没有 TRX
+    if not account_status.get("has_trx", False):
+        warnings.append({
+            "code": "no_trx_balance",
+            "message": "接收方账户没有 TRX，可能无法转出收到的代币（需要 TRX 支付手续费）",
+            "severity": "warning",
+        })
+    
+    # 构建综合警告消息
+    warning_message = None
+    if warnings:
+        messages = [w["message"] for w in warnings]
+        warning_message = "⚠️ 预警: " + "; ".join(messages)
+    
+    return {
+        "checked": True,
+        "account_status": account_status,
+        "warnings": warnings,
+        "warning_message": warning_message,
+    }
+
+
 def build_unsigned_tx(
     from_address: str,
     to_address: str,
     amount: float,
     token: str = "USDT",
+    check_recipient: bool = True,
 ) -> dict:
     """
     构建未签名交易
@@ -144,9 +202,11 @@ def build_unsigned_tx(
         to_address: 接收方地址
         amount: 转账金额
         token: 代币类型 (USDT 或 TRX)
+        check_recipient: 是否检查接收方账户状态 (默认 True)
 
     Returns:
         TRON 标准未签名交易结构 (txID + raw_data)
+        如果是 TRC20 转账且 check_recipient=True，还会包含接收方账户预警信息
 
     Raises:
         ValueError: 参数无效时抛出
@@ -158,7 +218,18 @@ def build_unsigned_tx(
     if token_upper not in ("USDT", "TRX"):
         raise ValueError(f"不支持的代币类型: {token}")
 
+    # 对于 TRC20 转账，检查接收方账户状态
+    recipient_check = None
+    if token_upper == "USDT" and check_recipient:
+        recipient_check = check_recipient_status(to_address)
+
     if token_upper == "USDT":
-        return _trigger_smart_contract(to_address, amount, from_address, token_upper)
+        result = _trigger_smart_contract(to_address, amount, from_address, token_upper)
     else:
-        return _build_trx_transfer(from_address, to_address, amount)
+        result = _build_trx_transfer(from_address, to_address, amount)
+    
+    # 将接收方检查结果添加到返回值
+    if recipient_check:
+        result["recipient_check"] = recipient_check
+    
+    return result

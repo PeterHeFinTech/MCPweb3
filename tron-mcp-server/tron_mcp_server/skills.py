@@ -28,8 +28,13 @@ SKILLS = [
         "params": {},
     },
     {
+        "action": "get_account_status",
+        "desc": "检查账户激活状态（用于预判转账风险）",
+        "params": {"address": "TRON 地址"},
+    },
+    {
         "action": "build_tx",
-        "desc": "构建未签名转账交易",
+        "desc": "构建未签名转账交易（自动检测接收方账户状态并预警）",
         "params": {
             "from": "发送方地址",
             "to": "接收方地址",

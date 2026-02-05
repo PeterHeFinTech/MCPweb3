@@ -223,3 +223,57 @@ def get_latest_block_info() -> dict:
         "number": _to_int(block.get("number") or block.get("blockNumber")),
         "hash": block.get("hash") or block.get("blockHash") or block.get("blockID"),
     }
+
+
+def get_account_status(address: str) -> dict:
+    """
+    检查账户激活状态
+    
+    返回账户状态信息:
+    - is_activated: 账户是否已激活（有过交易历史）
+    - has_trx: 账户是否持有 TRX
+    - trx_balance: TRX 余额 (SUN)
+    - total_transactions: 交易总数
+    
+    用途：
+    1. 向未激活地址转账 TRC20 会消耗更多 Energy（SSTORE 指令）
+    2. 如果接收方没有 TRX，可能无法转出代币
+    """
+    data = _get_account(_normalize_address(address))
+    
+    # 获取 TRX 余额 (SUN)
+    trx_balance = _to_int(
+        _first_not_none(
+            data.get("balance"),
+            data.get("balanceSun"),
+            data.get("totalBalance"),
+            data.get("total_balance"),
+            0,
+        )
+    )
+    
+    # 获取交易次数
+    total_transactions = _to_int(
+        _first_not_none(
+            data.get("transactions"),
+            data.get("totalTransactionCount"),
+            data.get("total_transaction_count"),
+            data.get("transactionCount"),
+            0,
+        )
+    )
+    
+    # 账户是否已激活（有过交易历史或有余额）
+    is_activated = total_transactions > 0 or trx_balance > 0
+    
+    # 是否持有 TRX
+    has_trx = trx_balance > 0
+    
+    return {
+        "address": _normalize_address(address),
+        "is_activated": is_activated,
+        "has_trx": has_trx,
+        "trx_balance_sun": trx_balance,
+        "trx_balance": trx_balance / 1_000_000,
+        "total_transactions": total_transactions,
+    }
