@@ -30,7 +30,10 @@ def _get_api_url() -> str:
 
 def _get_headers() -> dict:
     """获取请求头"""
-    headers = {"Accept": "application/json"}
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     api_key = os.getenv("TRONSCAN_API_KEY", "")
     if api_key:
         headers["TRONSCAN-API-KEY"] = api_key
@@ -242,7 +245,7 @@ def check_account_risk(address: str) -> dict:
     """
     url = "https://apilist.tronscanapi.com/api/multiple/chain/query"
     params = {"address": _normalize_address(address)}
-    headers = {"accept": "application/json"}
+    headers = _get_headers()
     
     try:
         response = httpx.get(url, params=params, headers=headers, timeout=TIMEOUT)
