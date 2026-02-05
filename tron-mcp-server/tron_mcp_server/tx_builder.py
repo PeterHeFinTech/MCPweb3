@@ -130,6 +130,158 @@ def _build_trx_transfer(from_addr: str, to_addr: str, amount: float) -> dict:
     return {"txID": tx_id, "raw_data": raw_data}
 
 
+# TRC20 转账预估能量消耗（SUN 单位）
+# 激活账户约 29,000 Energy，未激活账户约 65,000 Energy
+# 保守估计使用较高值
+ESTIMATED_USDT_ENERGY = int(os.getenv("ESTIMATED_USDT_ENERGY", "65000"))
+# 每单位 Energy 的 SUN 价格（默认 420 SUN）
+ENERGY_PRICE_SUN = int(os.getenv("ENERGY_PRICE_SUN", "420"))
+# TRX 转账最小 Gas 费用（SUN 单位，约 0.1 TRX = 100,000 SUN）
+MIN_TRX_TRANSFER_FEE = int(os.getenv("MIN_TRX_TRANSFER_FEE", "100000"))
+
+
+class InsufficientBalanceError(ValueError):
+    """余额不足异常，用于在交易构建前拦截必死交易"""
+    
+    def __init__(self, message: str, error_code: str, details: dict = None):
+        super().__init__(message)
+        self.error_code = error_code
+        self.details = details or {}
+
+
+def check_sender_balance(
+    from_address: str,
+    amount: float,
+    token: str,
+) -> dict:
+    """
+    检查发送方余额是否充足，拦截必死交易
+    
+    这是策略二的核心实现：在本地（Builder 阶段）拦截余额不足的交易，
+    避免这些交易上链后失败导致 Gas 浪费。
+    
+    Args:
+        from_address: 发送方地址
+        amount: 转账金额
+        token: 代币类型 (USDT 或 TRX)
+    
+    Returns:
+        包含检查结果的字典:
+        - checked: 是否成功完成检查
+        - sufficient: 余额是否充足
+        - errors: 错误列表（如果余额不足）
+        - balances: 当前余额信息
+    
+    Raises:
+        InsufficientBalanceError: 余额明确不足时抛出，阻止交易构建
+    """
+    import logging
+    
+    token_upper = token.upper()
+    errors = []
+    
+    try:
+        # 获取发送方 TRX 余额
+        trx_balance = tron_client.get_balance_trx(from_address)
+        trx_balance_sun = int(trx_balance * 1_000_000)
+    except Exception as e:
+        logging.warning(f"检查发送方 TRX 余额失败 ({from_address}): {e}")
+        # 如果无法查询余额，不阻止交易（保守策略）
+        return {
+            "checked": False,
+            "sufficient": None,
+            "errors": [],
+            "error_message": None,
+            "balances": None,
+        }
+    
+    if token_upper == "USDT":
+        # USDT 转账检查
+        try:
+            usdt_balance = tron_client.get_usdt_balance(from_address)
+        except Exception as e:
+            logging.warning(f"检查发送方 USDT 余额失败 ({from_address}): {e}")
+            return {
+                "checked": False,
+                "sufficient": None,
+                "errors": [],
+                "error_message": None,
+                "balances": {"trx": trx_balance},
+            }
+        
+        # 检查 USDT 余额是否充足
+        if usdt_balance < amount:
+            errors.append({
+                "code": "insufficient_usdt",
+                "message": f"USDT 余额不足: 需要 {amount} USDT，当前余额 {usdt_balance} USDT",
+                "severity": "error",
+                "required": amount,
+                "available": usdt_balance,
+            })
+        
+        # 检查 TRX 是否足够支付 Gas（Energy 费用）
+        estimated_fee_sun = ESTIMATED_USDT_ENERGY * ENERGY_PRICE_SUN
+        estimated_fee_trx = estimated_fee_sun / 1_000_000
+        
+        if trx_balance_sun < estimated_fee_sun:
+            errors.append({
+                "code": "insufficient_trx_for_gas",
+                "message": f"TRX 余额不足以支付 Gas: 预估需要 {estimated_fee_trx:.2f} TRX，当前余额 {trx_balance:.6f} TRX",
+                "severity": "error",
+                "required_sun": estimated_fee_sun,
+                "available_sun": trx_balance_sun,
+            })
+        
+        balances = {
+            "usdt": usdt_balance,
+            "trx": trx_balance,
+            "trx_sun": trx_balance_sun,
+        }
+    
+    else:
+        # TRX 转账检查
+        amount_sun = int(amount * 1_000_000)
+        # TRX 转账需要的总金额 = 转账金额 + Gas 费用
+        total_required_sun = amount_sun + MIN_TRX_TRANSFER_FEE
+        total_required_trx = total_required_sun / 1_000_000
+        
+        if trx_balance_sun < total_required_sun:
+            errors.append({
+                "code": "insufficient_trx",
+                "message": f"TRX 余额不足: 需要 {amount} TRX + {MIN_TRX_TRANSFER_FEE / 1_000_000:.2f} TRX (Gas)，当前余额 {trx_balance:.6f} TRX",
+                "severity": "error",
+                "required_sun": total_required_sun,
+                "available_sun": trx_balance_sun,
+            })
+        
+        balances = {
+            "trx": trx_balance,
+            "trx_sun": trx_balance_sun,
+        }
+    
+    # 如果有错误，抛出异常阻止交易构建
+    if errors:
+        error_messages = [e["message"] for e in errors]
+        error_message = "❌ 交易拒绝: " + "; ".join(error_messages)
+        
+        raise InsufficientBalanceError(
+            message=error_message,
+            error_code=errors[0]["code"],
+            details={
+                "errors": errors,
+                "balances": balances,
+            }
+        )
+    
+    return {
+        "checked": True,
+        "sufficient": True,
+        "errors": [],
+        "error_message": None,
+        "balances": balances,
+    }
+
+
 def check_recipient_status(to_address: str) -> dict:
     """
     检查接收方账户状态，返回预警信息
@@ -193,6 +345,7 @@ def build_unsigned_tx(
     amount: float,
     token: str = "USDT",
     check_recipient: bool = True,
+    check_balance: bool = True,
 ) -> dict:
     """
     构建未签名交易
@@ -203,13 +356,17 @@ def build_unsigned_tx(
         amount: 转账金额
         token: 代币类型 (USDT 或 TRX)
         check_recipient: 是否检查接收方账户状态 (默认 True)
+        check_balance: 是否预先检查发送方余额 (默认 True)
+            启用后会在构建交易前检查余额，拒绝必死交易以节省 Gas
 
     Returns:
         TRON 标准未签名交易结构 (txID + raw_data)
         如果是 TRC20 转账且 check_recipient=True，还会包含接收方账户预警信息
+        如果 check_balance=True，还会包含发送方余额检查结果
 
     Raises:
         ValueError: 参数无效时抛出
+        InsufficientBalanceError: 发送方余额不足时抛出（当 check_balance=True）
     """
     if not validators.is_positive_amount(amount):
         raise ValueError(f"金额必须为正数: {amount}")
@@ -217,6 +374,13 @@ def build_unsigned_tx(
     token_upper = token.upper()
     if token_upper not in ("USDT", "TRX"):
         raise ValueError(f"不支持的代币类型: {token}")
+
+    # 策略二：预先检查发送方余额，拒绝必死交易
+    # 在 Builder 阶段拦截余额不足的交易是 0 成本的
+    sender_check = None
+    if check_balance:
+        # 如果余额不足，check_sender_balance 会抛出 InsufficientBalanceError
+        sender_check = check_sender_balance(from_address, amount, token_upper)
 
     # 对于 TRC20 转账，检查接收方账户状态
     recipient_check = None
@@ -227,6 +391,10 @@ def build_unsigned_tx(
         result = _trigger_smart_contract(to_address, amount, from_address, token_upper)
     else:
         result = _build_trx_transfer(from_address, to_address, amount)
+    
+    # 将发送方余额检查结果添加到返回值
+    if sender_check:
+        result["sender_check"] = sender_check
     
     # 将接收方检查结果添加到返回值
     if recipient_check:
