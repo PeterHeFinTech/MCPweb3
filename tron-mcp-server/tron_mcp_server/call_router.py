@@ -48,11 +48,13 @@ def _build_unsigned_tx(from_addr: str, to_addr: str, amount: float, token: str =
     """构建未签名交易（可被测试 mock）"""
     tx_result = tx_builder.build_unsigned_tx(from_addr, to_addr, amount, token)
     
+    # 提取发送方检查结果（如果有）
+    sender_check = tx_result.get("sender_check")
     # 提取接收方检查结果（如果有），使用 get() 避免修改原对象
     recipient_check = tx_result.get("recipient_check")
     
-    # 构建不包含 recipient_check 的 unsigned_tx
-    unsigned_tx = {k: v for k, v in tx_result.items() if k != "recipient_check"}
+    # 构建不包含 sender_check 和 recipient_check 的 unsigned_tx
+    unsigned_tx = {k: v for k, v in tx_result.items() if k not in ("sender_check", "recipient_check")}
     
     # 构建基础响应
     summary = f"已生成从 {from_addr[:8]}... 到 {to_addr[:8]}... 转账 {amount} {token} 的未签名交易。"
@@ -61,6 +63,10 @@ def _build_unsigned_tx(from_addr: str, to_addr: str, amount: float, token: str =
         "unsigned_tx": unsigned_tx,
         "summary": summary,
     }
+    
+    # 如果有发送方余额检查结果，添加到响应中
+    if sender_check:
+        result["sender_check"] = sender_check
     
     # 如果有接收方预警，添加到响应中
     if recipient_check and recipient_check.get("warnings"):
@@ -235,6 +241,15 @@ def _handle_build_tx(params: dict) -> dict:
 
     try:
         return _build_unsigned_tx(from_addr, to_addr, amount, token)
+    except tx_builder.InsufficientBalanceError as e:
+        # 策略二：余额不足时返回详细的错误信息，拒绝构建交易以节省 Gas
+        return {
+            "error": True,
+            "error_type": e.error_code,
+            "message": str(e),
+            "details": e.details,
+            "summary": str(e),
+        }
     except ValueError as e:
         return _error_response("build_error", str(e))
     except Exception as e:
