@@ -47,10 +47,26 @@ def _get_network_status() -> dict:
 def _build_unsigned_tx(from_addr: str, to_addr: str, amount: float, token: str = "USDT") -> dict:
     """构建未签名交易（可被测试 mock）"""
     unsigned_tx = tx_builder.build_unsigned_tx(from_addr, to_addr, amount, token)
-    return {
+    
+    # 提取接收方检查结果（如果有）
+    recipient_check = unsigned_tx.pop("recipient_check", None)
+    
+    # 构建基础响应
+    summary = f"已生成从 {from_addr[:8]}... 到 {to_addr[:8]}... 转账 {amount} {token} 的未签名交易。"
+    
+    result = {
         "unsigned_tx": unsigned_tx,
-        "summary": f"已生成从 {from_addr[:8]}... 到 {to_addr[:8]}... 转账 {amount} {token} 的未签名交易。",
+        "summary": summary,
     }
+    
+    # 如果有接收方预警，添加到响应中
+    if recipient_check and recipient_check.get("warnings"):
+        result["recipient_warnings"] = recipient_check["warnings"]
+        warning_msg = recipient_check.get("warning_message", "")
+        if warning_msg:
+            result["summary"] = summary + " " + warning_msg
+    
+    return result
 
 
 def call(action: str, params: dict = None) -> dict:
@@ -85,6 +101,9 @@ def call(action: str, params: dict = None) -> dict:
 
     elif action == "get_network_status":
         return _handle_get_network_status()
+
+    elif action == "get_account_status":
+        return _handle_get_account_status(params)
 
     elif action == "build_tx":
         return _handle_build_tx(params)
@@ -169,6 +188,22 @@ def _handle_get_network_status() -> dict:
     """处理 get_network_status 动作"""
     try:
         return _get_network_status()
+    except Exception as e:
+        return _error_response("rpc_error", str(e))
+
+
+def _handle_get_account_status(params: dict) -> dict:
+    """处理 get_account_status 动作 - 检查账户激活状态"""
+    address = params.get("address")
+    if not address:
+        return _error_response("missing_param", "缺少必填参数: address")
+
+    if not validators.is_valid_address(address):
+        return _error_response("invalid_address", f"无效的地址格式: {address}")
+
+    try:
+        account_status = tron_client.get_account_status(address)
+        return formatters.format_account_status(account_status)
     except Exception as e:
         return _error_response("rpc_error", str(e))
 

@@ -66,6 +66,44 @@ def format_network_status(block_number: int) -> dict:
     }
 
 
+def format_account_status(account_status: dict) -> dict:
+    """
+    格式化账户状态检查结果
+    
+    用于向用户展示接收方账户的激活状态和潜在风险
+    """
+    address = account_status.get("address", "")
+    is_activated = account_status.get("is_activated", False)
+    has_trx = account_status.get("has_trx", False)
+    trx_balance = account_status.get("trx_balance", 0)
+    total_transactions = account_status.get("total_transactions", 0)
+    
+    # 构建状态描述
+    status_text = "已激活" if is_activated else "未激活"
+    
+    # 构建预警信息
+    warnings = []
+    if not is_activated:
+        warnings.append("⚠️ 账户未激活，向此地址转账 TRC20 代币将消耗更多 Energy（约 65000 额外能量）")
+    if not has_trx:
+        warnings.append("⚠️ 账户没有 TRX 余额，可能无法转出收到的代币（需要 TRX 支付手续费）")
+    
+    # 构建摘要
+    summary_parts = [f"地址 {address} 账户状态：{status_text}，TRX 余额 {trx_balance:,.6f} TRX，交易记录 {total_transactions} 笔。"]
+    if warnings:
+        summary_parts.extend(warnings)
+    
+    return {
+        "address": address,
+        "is_activated": is_activated,
+        "has_trx": has_trx,
+        "trx_balance": trx_balance,
+        "total_transactions": total_transactions,
+        "warnings": warnings,
+        "summary": " ".join(summary_parts),
+    }
+
+
 def format_error(error_code: str, message: str) -> dict:
     """格式化错误响应"""
     return {
