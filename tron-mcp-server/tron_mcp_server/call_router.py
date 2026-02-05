@@ -46,10 +46,13 @@ def _get_network_status() -> dict:
 
 def _build_unsigned_tx(from_addr: str, to_addr: str, amount: float, token: str = "USDT") -> dict:
     """构建未签名交易（可被测试 mock）"""
-    unsigned_tx = tx_builder.build_unsigned_tx(from_addr, to_addr, amount, token)
+    tx_result = tx_builder.build_unsigned_tx(from_addr, to_addr, amount, token)
     
-    # 提取接收方检查结果（如果有）
-    recipient_check = unsigned_tx.pop("recipient_check", None)
+    # 提取接收方检查结果（如果有），使用 get() 避免修改原对象
+    recipient_check = tx_result.get("recipient_check")
+    
+    # 构建不包含 recipient_check 的 unsigned_tx
+    unsigned_tx = {k: v for k, v in tx_result.items() if k != "recipient_check"}
     
     # 构建基础响应
     summary = f"已生成从 {from_addr[:8]}... 到 {to_addr[:8]}... 转账 {amount} {token} 的未签名交易。"

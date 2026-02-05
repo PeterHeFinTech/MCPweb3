@@ -143,8 +143,10 @@ def check_recipient_status(to_address: str) -> dict:
     """
     try:
         account_status = tron_client.get_account_status(to_address)
-    except Exception:
-        # 如果查询失败，返回未知状态，不阻止交易
+    except Exception as e:
+        # 如果查询失败，记录错误信息并返回未知状态，不阻止交易
+        import logging
+        logging.warning(f"检查接收方账户状态失败 ({to_address}): {e}")
         return {
             "checked": False,
             "warnings": [],
@@ -154,7 +156,8 @@ def check_recipient_status(to_address: str) -> dict:
     warnings = []
     
     # 检查账户是否未激活
-    if not account_status.get("is_activated", True):
+    # 默认为 False (未激活)，保守处理：如果无法确定状态，假设未激活
+    if not account_status.get("is_activated", False):
         warnings.append({
             "code": "unactivated_recipient",
             "message": "接收方账户未激活，转账 TRC20 将消耗更多 Energy（约 65000 额外能量）",
@@ -162,7 +165,8 @@ def check_recipient_status(to_address: str) -> dict:
         })
     
     # 检查接收方是否没有 TRX
-    if not account_status.get("has_trx", True):
+    # 默认为 False (没有 TRX)，保守处理：如果无法确定状态，假设没有 TRX
+    if not account_status.get("has_trx", False):
         warnings.append({
             "code": "no_trx_balance",
             "message": "接收方账户没有 TRX，可能无法转出收到的代币（需要 TRX 支付手续费）",
