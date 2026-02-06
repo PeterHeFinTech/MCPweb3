@@ -503,3 +503,62 @@ def get_account_status(address: str) -> dict:
         "trx_balance": trx_balance / 1_000_000,
         "total_transactions": total_transactions,
     }
+
+
+def get_transfer_history(address: str, limit: int = 10, start: int = 0, token: Optional[str] = None) -> dict:
+    """
+    查询 TRX 和 TRC10 转账记录
+    调用 TRONSCAN 端点：/api/transfer
+    
+    Args:
+        address: TRON 地址
+        limit: 返回条数，默认 10
+        start: 偏移量，默认 0
+        token: 可选，按代币名称筛选（如 "_" 表示 TRX，或 TRC10 token name）
+    
+    Returns:
+        API 响应字典（包含 total 和 data 列表）
+    """
+    normalized_addr = _normalize_address(address)
+    params = {
+        "sort": "-timestamp",
+        "limit": limit,
+        "start": start,
+        "address": normalized_addr,
+    }
+    if token is not None:
+        params["token"] = token
+    
+    return _get("transfer", params)
+
+
+def get_trc20_transfer_history(
+    address: str,
+    limit: int = 10,
+    start: int = 0,
+    contract_address: Optional[str] = None
+) -> dict:
+    """
+    查询 TRC20 代币（如 USDT）转账记录
+    调用 TRONSCAN 端点：/api/token_trc20/transfers
+    
+    Args:
+        address: TRON 地址
+        limit: 返回条数，默认 10
+        start: 偏移量，默认 0
+        contract_address: 可选，过滤特定合约地址（如 USDT 合约）
+    
+    Returns:
+        API 响应字典（包含 total 和 token_transfers 列表）
+    """
+    normalized_addr = _normalize_address(address)
+    params = {
+        "sort": "-timestamp",
+        "limit": limit,
+        "start": start,
+        "relatedAddress": normalized_addr,
+    }
+    if contract_address is not None:
+        params["contract_address"] = contract_address
+    
+    return _get("token_trc20/transfers", params)

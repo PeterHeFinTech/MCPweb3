@@ -276,6 +276,40 @@ def tron_get_wallet_info() -> dict:
     return call_router.call("get_wallet_info", {})
 
 
+@mcp.tool()
+def tron_get_transaction_history(
+    address: str,
+    limit: int = 10,
+    start: int = 0,
+    token: str = None,
+) -> dict:
+    """
+    查询指定地址的交易历史记录。
+
+    支持自定义返回条数和按代币类型筛选。
+
+    Args:
+        address: TRON 地址（Base58 格式以 T 开头，或 Hex 格式以 0x41 开头）
+        limit: 返回交易条数，默认 10，最大 50
+        start: 偏移量（用于分页），默认 0
+        token: 代币筛选条件，可选值：
+               - None: 查询所有类型的交易（默认）
+               - "TRX": 仅查询 TRX 原生转账
+               - "USDT": 仅查询 USDT (TRC20) 转账
+               - TRC20 合约地址: 查询指定 TRC20 代币的转账记录
+               - TRC10 代币名称: 查询指定 TRC10 代币的转账记录
+
+    Returns:
+        包含 address, total, displayed, token_filter, transfers 列表和 summary 的结果
+    """
+    return call_router.call("get_transaction_history", {
+        "address": address,
+        "limit": limit,
+        "start": start,
+        "token": token,
+    })
+
+
 # ============ 兼容模式：单入口（可选）============
 
 @mcp.tool()

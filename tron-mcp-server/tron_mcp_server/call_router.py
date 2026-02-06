@@ -154,6 +154,9 @@ def call(action: str, params: dict = None) -> dict:
     elif action == "get_wallet_info":
         return _handle_get_wallet_info()
 
+    elif action == "get_transaction_history":
+        return _handle_get_transaction_history(params)
+
     else:
         return _error_response(
             "unknown_action",
@@ -532,6 +535,125 @@ def _handle_get_wallet_info() -> dict:
         logging.warning(f"查询钱包 USDT 余额失败: {e}")
 
     return formatters.format_wallet_info(address, trx_balance, usdt_balance)
+
+
+def _handle_get_transaction_history(params: dict) -> dict:
+    """处理 get_transaction_history 动作 — 查询交易历史记录"""
+    address = params.get("address")
+    limit = params.get("limit", 10)
+    start = params.get("start", 0)
+    token = params.get("token")
+
+    # 参数校验
+    if not address:
+        return _error_response("missing_param", "缺少必填参数: address")
+    
+    if not validators.is_valid_address(address):
+        return _error_response("invalid_address", f"无效的地址格式: {address}")
+    
+    # 转换并校验 limit
+    try:
+        limit = int(limit)
+        if limit < 1 or limit > 50:
+            return _error_response("invalid_param", f"limit 必须在 1-50 范围内，当前值: {limit}")
+    except (ValueError, TypeError):
+        return _error_response("invalid_param", "limit 必须为整数")
+    
+    # 转换并校验 start
+    try:
+        start = int(start)
+        if start < 0:
+            start = 0
+    except (ValueError, TypeError):
+        return _error_response("invalid_param", "start 必须为非负整数")
+
+    try:
+        # 根据 token 参数决定查询策略
+        if token is None:
+            # 不筛选代币，合并 TRX/TRC10 和 TRC20 交易记录
+            try:
+                # 获取 TRX/TRC10 转账记录
+                trx_data = tron_client.get_transfer_history(address, limit, start)
+                trx_transfers = trx_data.get("data", [])
+                trx_total = trx_data.get("total", 0)
+            except Exception as e:
+                logging.warning(f"获取 TRX/TRC10 转账记录失败: {e}")
+                trx_transfers = []
+                trx_total = 0
+            
+            try:
+                # 获取 TRC20 转账记录
+                trc20_data = tron_client.get_trc20_transfer_history(address, limit, start)
+                trc20_transfers = trc20_data.get("token_transfers", trc20_data.get("data", []))
+                trc20_total = trc20_data.get("total", 0)
+            except Exception as e:
+                logging.warning(f"获取 TRC20 转账记录失败: {e}")
+                trc20_transfers = []
+                trc20_total = 0
+            
+            # 合并两种类型的交易记录
+            all_transfers = trx_transfers + trc20_transfers
+            
+            # 按 timestamp 降序排序
+            all_transfers.sort(
+                key=lambda x: x.get("timestamp", x.get("block_ts", 0)),
+                reverse=True
+            )
+            
+            # 取前 limit 条
+            all_transfers = all_transfers[:limit]
+            
+            # 总数取两者之和（近似值，注意：可能存在重复计数）
+            # 警告：如果某些交易同时出现在两个 API 结果中，total 可能不准确
+            total = trx_total + trc20_total
+            
+            return formatters.format_transaction_history(
+                address, all_transfers, total, token, limit
+            )
+        
+        elif token.upper() == "USDT":
+            # 查询 USDT (TRC20) 转账记录
+            data = tron_client.get_trc20_transfer_history(
+                address, limit, start, contract_address=tron_client.USDT_CONTRACT_BASE58
+            )
+            transfers = data.get("token_transfers", data.get("data", []))
+            total = data.get("total", 0)
+            return formatters.format_transaction_history(
+                address, transfers, total, "USDT", limit
+            )
+        
+        elif token.upper() == "TRX":
+            # 查询 TRX 转账记录
+            data = tron_client.get_transfer_history(address, limit, start, token="_")
+            transfers = data.get("data", [])
+            total = data.get("total", 0)
+            return formatters.format_transaction_history(
+                address, transfers, total, "TRX", limit
+            )
+        
+        elif token.startswith("T") and len(token) == 34:
+            # TRC20 合约地址（以 T 开头的 34 位地址）
+            data = tron_client.get_trc20_transfer_history(
+                address, limit, start, contract_address=token
+            )
+            transfers = data.get("token_transfers", data.get("data", []))
+            total = data.get("total", 0)
+            return formatters.format_transaction_history(
+                address, transfers, total, token, limit
+            )
+        
+        else:
+            # 其他代币名称（TRC10 token name）
+            data = tron_client.get_transfer_history(address, limit, start, token=token)
+            transfers = data.get("data", [])
+            total = data.get("total", 0)
+            return formatters.format_transaction_history(
+                address, transfers, total, token, limit
+            )
+    
+    except Exception as e:
+        logging.error(f"查询交易历史失败: {e}", exc_info=True)
+        return _error_response("rpc_error", f"查询失败: {e}")
 
 
 def _error_response(error_type: str, message: str) -> dict:

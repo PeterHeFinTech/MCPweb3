@@ -275,3 +275,115 @@ def format_wallet_info(
             f"USDT 余额: {usdt_balance:,.6f} USDT"
         ),
     }
+
+
+def format_transaction_history(
+    address: str,
+    transfers: list,
+    total: int,
+    token_filter: str = None,
+    limit: int = 10,
+) -> dict:
+    """
+    格式化交易历史记录
+    
+    将交易列表格式化为简洁的 dict，提取关键字段并计算方向
+    
+    Args:
+        address: 查询的 TRON 地址
+        transfers: 从 API 获取的交易记录列表
+        total: 总交易数
+        token_filter: 代币筛选条件
+        limit: 请求的返回条数
+    
+    Returns:
+        格式化的交易历史结果
+    """
+    formatted_transfers = []
+    
+    for tx in transfers:
+        # 提取交易哈希
+        txid = tx.get("transactionHash") or tx.get("transaction_id") or ""
+        
+        # 提取发送方和接收方地址
+        from_addr = tx.get("transferFromAddress") or tx.get("from_address") or tx.get("from") or ""
+        to_addr = tx.get("transferToAddress") or tx.get("to_address") or tx.get("to") or ""
+        
+        # 提取金额（使用显式 None 检查避免零值被跳过）
+        amount_raw = tx.get("quant")
+        if amount_raw is None:
+            amount_raw = tx.get("value")
+        if amount_raw is None:
+            amount_raw = tx.get("amount")
+        if amount_raw is None:
+            amount_raw = 0
+        
+        # 提取代币信息
+        token_name = ""
+        decimals = 6  # 默认精度
+        
+        # TRC20 token 信息
+        token_info = tx.get("tokenInfo")
+        if token_info and isinstance(token_info, dict):
+            token_name = token_info.get("tokenAbbr") or token_info.get("tokenName") or ""
+            token_decimal = token_info.get("tokenDecimal")
+            if token_decimal is not None:
+                decimals = int(token_decimal)
+        
+        # TRX/TRC10 token 信息
+        if not token_name:
+            token_name = tx.get("tokenName") or tx.get("symbol") or ""
+        
+        # 特殊处理 TRX（_ 表示 TRX）
+        if token_name == "_":
+            token_name = "TRX"
+            decimals = 6
+        
+        # 转换金额为人类可读格式
+        try:
+            amount = int(amount_raw) / (10 ** decimals)
+        except (ValueError, TypeError):
+            amount = 0.0
+        
+        # 提取时间戳
+        timestamp = tx.get("timestamp") or tx.get("block_ts") or 0
+        
+        # 计算方向
+        direction = "OTHER"
+        if from_addr and to_addr:
+            if from_addr == address:
+                if to_addr == address:
+                    direction = "SELF"
+                else:
+                    direction = "OUT"
+            elif to_addr == address:
+                direction = "IN"
+        
+        formatted_transfers.append({
+            "txid": txid,
+            "from": from_addr,
+            "to": to_addr,
+            "amount": amount,
+            "token": token_name,
+            "timestamp": timestamp,
+            "direction": direction,
+        })
+    
+    # 构建摘要
+    filter_text = ""
+    if token_filter:
+        filter_text = f"（筛选条件：{token_filter}）"
+    
+    summary = (
+        f"地址 {address} 共有 {total} 笔交易记录{filter_text}，"
+        f"当前显示最近 {len(formatted_transfers)} 笔。"
+    )
+    
+    return {
+        "address": address,
+        "total": total,
+        "displayed": len(formatted_transfers),
+        "token_filter": token_filter,
+        "transfers": formatted_transfers,
+        "summary": summary,
+    }

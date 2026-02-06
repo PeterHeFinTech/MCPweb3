@@ -79,6 +79,16 @@ SKILLS = [
         "desc": "查看本地钱包地址和余额（不暴露私钥）",
         "params": {},
     },
+    {
+        "action": "get_transaction_history",
+        "desc": "查询地址的交易历史记录（支持自定义条数和代币筛选）",
+        "params": {
+            "address": "TRON 地址",
+            "limit": "返回条数（默认 10，最大 50）",
+            "start": "偏移量（默认 0）",
+            "token": "代币筛选：TRX / USDT / TRC20合约地址 / TRC10名称（可选）",
+        },
+    },
 ]
 
 
