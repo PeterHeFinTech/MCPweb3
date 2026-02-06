@@ -216,6 +216,55 @@ python -m tron_mcp_server.server --sse
 
 ---
 
+## ⚠️ 已知问题与改善计划 (Known Issues & Roadmap)
+
+> 以下是经过系统审计后识别的已知问题，按严重程度排序。所有问题均已有测试覆盖（见 `test_known_issues.py`）。
+
+### 🔴 严重：API 失败时的静默失效 (Silent Failure)
+
+| 项目 | 说明 |
+|------|------|
+| **位置** | `tron_client.py` → `check_account_risk()` |
+| **问题** | 当两个安全 API（accountv2 + security）**同时失败**（如 429 频率限制、网络断开），代码通过 `except Exception` 默认返回 `is_risky=False, risk_type="Safe"` |
+| **风险** | 金融安全工具中"静默失效"是最危险的缺陷。评委测试时如果 API 恰好超频，所有地址都会显示"安全" |
+| **改善方向** | 1. 双 API 失败时 `risk_type` 设为 `"Unknown"`<br>2. 添加降级提示 `"⚠️ 安全检查服务暂时不可用，请谨慎操作"`<br>3. `check_recipient_security()` 中 API 失败时考虑不默认放行 |
+
+### 🟡 中等：手续费估算未接入免费带宽抵扣 (Free Bandwidth Gap)
+
+| 项目 | 说明 |
+|------|------|
+| **位置** | `tx_builder.py` → `check_sender_balance()` |
+| **问题** | USDT 手续费固定按 `65000 Energy × 420 SUN = 27.3 TRX` 估算，未接入 TRON 每地址每天 600 免费带宽的动态抵扣 |
+| **影响** | USDT 转账消耗 ~350 bytes 带宽，免费带宽可节省 ~0.35 TRX。余额在 26.95~27.30 TRX 之间的用户可能被误报"余额不足" |
+| **改善方向** | 查询用户剩余免费带宽，动态调整 Gas 估算 |
+
+### 🟡 中等：`force_execution` 的 LLM 提示词风险
+
+| 项目 | 说明 |
+|------|------|
+| **位置** | `tx_builder.py` → `build_unsigned_tx()`, `SKILL.md` |
+| **问题** | 拦截交易时返回字符串提示 LLM "用户说强制才可以"，但如果提示词不够清晰，LLM 可能陷入"对不起我不能转"的死循环，或错误地自行决定强制执行 |
+| **改善方向** | 在 SKILL.md 中加强提示：只有用户**明确说**"我知道有风险，但我就是要转"才设置 `force_execution=True` |
+
+### 🟢 低等：交易确认工作流待优化
+
+| 项目 | 说明 |
+|------|------|
+| **位置** | `tron_client.py` → `get_transaction_status()` |
+| **现状** | 功能已实现，可通过 `transaction-info?hash={hash}` 查询链上确认状态 |
+| **待优化** | 在 SKILL.md 中增加"转账后查询确认"推荐工作流，让 AI 主动引导用户使用 `tron_get_transaction_status` 查询到账情况 |
+
+### 测试覆盖
+
+所有上述问题均在 `test_known_issues.py` 中有对应测试用例：
+
+```bash
+cd tron-mcp-server
+python -m pytest test_known_issues.py -v
+```
+
+---
+
 ## 常见问题 FAQ
 
 ### Q1: 如何切换到测试网？

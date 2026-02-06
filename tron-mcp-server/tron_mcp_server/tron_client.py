@@ -281,12 +281,15 @@ def check_account_risk(address: str) -> dict:
     
     data_v2 = {}
     data_sec = {}
+    v2_success = False
+    sec_success = False
     
     # --- Layer 1: Account V2 API (查标签 + 投诉) ---
     try:
         account_url = "https://apilist.tronscanapi.com/api/accountv2"
         response = httpx.get(account_url, params={"address": normalized_addr}, headers=headers, timeout=TIMEOUT)
         data_v2 = response.json()
+        v2_success = True
         
         red_tag = data_v2.get("redTag") or ""
         grey_tag = data_v2.get("greyTag") or ""
@@ -328,6 +331,7 @@ def check_account_risk(address: str) -> dict:
         security_url = "https://apilist.tronscanapi.com/api/security/account/data"
         response = httpx.get(security_url, params={"address": normalized_addr}, headers=headers, timeout=TIMEOUT)
         data_sec = response.json()
+        sec_success = True
         
         is_black_list = bool(data_sec.get("is_black_list", False))
         has_fraud_transaction = bool(data_sec.get("has_fraud_transaction", False))
@@ -389,8 +393,19 @@ def check_account_risk(address: str) -> dict:
         report["risk_type"] = "Spam Account"
         report["detail"] = "Address frequently sends advertisements via memo (spam behavior)."
     else:
-        report["risk_type"] = "Safe"
-        report["detail"] = "Passed all security checks."
+        # 关键修复：区分 "真安全" 和 "无法验证"
+        # 如果两个 API 都失败了，不能声称地址安全
+        if not v2_success and not sec_success:
+            report["risk_type"] = "Unknown"
+            report["detail"] = "Unable to verify: all security APIs failed. Please proceed with caution."
+            report["risk_reasons"].append("⚠️ 安全检查服务不可用，无法验证地址安全性，请谨慎操作")
+        elif not v2_success or not sec_success:
+            # 只有一个 API 失败，部分检查通过
+            report["risk_type"] = "Partially Verified"
+            report["detail"] = "Partial verification: one security API was unavailable. No risk found in available data."
+        else:
+            report["risk_type"] = "Safe"
+            report["detail"] = "Passed all security checks."
     
     return report
 

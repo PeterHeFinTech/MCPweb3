@@ -146,6 +146,14 @@ ENERGY_PRICE_SUN = int(os.getenv("ENERGY_PRICE_SUN", "420"))
 # TRX 转账最小 Gas 费用（SUN 单位，约 0.1 TRX = 100,000 SUN）
 MIN_TRX_TRANSFER_FEE = int(os.getenv("MIN_TRX_TRANSFER_FEE", "100000"))
 
+# 免费带宽抵扣参数
+# TRON 网络每地址每天提供 600 免费带宽点
+FREE_BANDWIDTH_DAILY = int(os.getenv("FREE_BANDWIDTH_DAILY", "600"))
+# USDT TRC20 转账消耗的带宽（约 350 字节）
+USDT_BANDWIDTH_BYTES = int(os.getenv("USDT_BANDWIDTH_BYTES", "350"))
+# 每单位带宽的 SUN 价格（默认 1000 SUN）
+BANDWIDTH_PRICE_SUN = int(os.getenv("BANDWIDTH_PRICE_SUN", "1000"))
+
 
 class InsufficientBalanceError(ValueError):
     """余额不足异常，用于在交易构建前拦截必死交易"""
@@ -224,8 +232,15 @@ def check_sender_balance(
                 "available": usdt_balance,
             })
         
-        # 检查 TRX 是否足够支付 Gas（Energy 费用）
-        estimated_fee_sun = ESTIMATED_USDT_ENERGY * ENERGY_PRICE_SUN
+        # 检查 TRX 是否足够支付 Gas（Energy 费 + 带宽费，免费带宽仅抵扣带宽部分）
+        # 能量费用：固定消耗，免费带宽无法抵扣
+        energy_fee_sun = ESTIMATED_USDT_ENERGY * ENERGY_PRICE_SUN
+        # 带宽费用：每笔 USDT 转账消耗约 350 字节
+        # 每地址每天 600 免费带宽点，1 点 = 1 字节
+        # 若免费带宽足够覆盖，带宽部分费用为 0
+        free_bw_coverage = min(USDT_BANDWIDTH_BYTES, FREE_BANDWIDTH_DAILY)
+        actual_bw_fee_sun = max(0, (USDT_BANDWIDTH_BYTES - free_bw_coverage) * BANDWIDTH_PRICE_SUN)
+        estimated_fee_sun = energy_fee_sun + actual_bw_fee_sun
         estimated_fee_trx = estimated_fee_sun / SUN_PER_TRX
         
         if trx_balance_sun < estimated_fee_sun:
@@ -368,6 +383,7 @@ def check_recipient_security(to_address: str) -> dict:
             "is_risky": False,
             "risk_type": "Unknown",
             "security_warning": None,
+            "degradation_warning": "⚠️ 安全检查服务不可用，无法验证接收方地址安全性，请谨慎操作",
         }
     
     is_risky = risk_info.get("is_risky", False)
@@ -490,6 +506,9 @@ def build_unsigned_tx(
         # 如果检测到恶意地址，添加高优先级警告到顶层
         if security_check.get("security_warning"):
             result["security_warning"] = security_check["security_warning"]
+        # 如果安全检查降级（API 不可用），添加降级警告
+        if security_check.get("degradation_warning"):
+            result["degradation_warning"] = security_check["degradation_warning"]
     
     # 将发送方余额检查结果添加到返回值
     if sender_check:
