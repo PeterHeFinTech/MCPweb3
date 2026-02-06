@@ -24,21 +24,33 @@ class TestGetTransactionHistory:
 
     def test_limit_validation(self):
         """limit 参数应被限制在 1-50 范围内"""
+        # 测试超过最大值应返回错误
+        result = call_router.call("get_transaction_history", {
+            "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7",
+            "limit": 100
+        })
+        assert "error" in result
+        assert "1-50" in result.get("summary", "")
+        
+        # 测试小于最小值应返回错误
+        result = call_router.call("get_transaction_history", {
+            "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7",
+            "limit": 0
+        })
+        assert "error" in result
+        
+        # 测试有效值应成功
         with patch('tron_mcp_server.tron_client.get_transfer_history') as mock_trx, \
              patch('tron_mcp_server.tron_client.get_trc20_transfer_history') as mock_trc20:
             
             mock_trx.return_value = {"data": [], "total": 0}
             mock_trc20.return_value = {"token_transfers": [], "total": 0}
             
-            # 测试超过最大值
             result = call_router.call("get_transaction_history", {
                 "address": "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7",
-                "limit": 100
+                "limit": 20
             })
             assert "error" not in result
-            
-            # 验证实际调用时 limit 被限制为 50
-            assert mock_trx.call_args[0][1] == 50  # limit 参数
 
     def test_query_all_tokens(self):
         """token=None 时应合并 TRX 和 TRC20 交易"""

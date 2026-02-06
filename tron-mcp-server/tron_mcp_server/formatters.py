@@ -309,8 +309,14 @@ def format_transaction_history(
         from_addr = tx.get("transferFromAddress") or tx.get("from_address") or tx.get("from") or ""
         to_addr = tx.get("transferToAddress") or tx.get("to_address") or tx.get("to") or ""
         
-        # 提取金额
-        amount_raw = tx.get("quant") or tx.get("value") or tx.get("amount") or 0
+        # 提取金额（使用显式 None 检查避免零值被跳过）
+        amount_raw = tx.get("quant")
+        if amount_raw is None:
+            amount_raw = tx.get("value")
+        if amount_raw is None:
+            amount_raw = tx.get("amount")
+        if amount_raw is None:
+            amount_raw = 0
         
         # 提取代币信息
         token_name = ""

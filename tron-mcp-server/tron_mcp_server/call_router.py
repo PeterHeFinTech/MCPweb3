@@ -555,7 +555,7 @@ def _handle_get_transaction_history(params: dict) -> dict:
     try:
         limit = int(limit)
         if limit < 1 or limit > 50:
-            limit = min(max(limit, 1), 50)  # 强制限制在 1-50 范围内
+            return _error_response("invalid_param", f"limit 必须在 1-50 范围内，当前值: {limit}")
     except (ValueError, TypeError):
         return _error_response("invalid_param", "limit 必须为整数")
     
@@ -603,7 +603,8 @@ def _handle_get_transaction_history(params: dict) -> dict:
             # 取前 limit 条
             all_transfers = all_transfers[:limit]
             
-            # 总数取两者之和（近似值）
+            # 总数取两者之和（近似值，注意：可能存在重复计数）
+            # 警告：如果某些交易同时出现在两个 API 结果中，total 可能不准确
             total = trx_total + trc20_total
             
             return formatters.format_transaction_history(
