@@ -1,6 +1,11 @@
 # TRON MCP Server
 # 渐进式披露架构实现
 
+from tron_mcp_server.logging_config import setup_logging
+
+# 初始化统一日志配置
+setup_logging()
+
 from tron_mcp_server import skills
 from tron_mcp_server import validators
 from tron_mcp_server import formatters

@@ -15,6 +15,8 @@ import ecdsa
 import base58
 from Crypto.Hash import keccak as _keccak_mod
 
+logger = logging.getLogger(__name__)
+
 
 # ============ 底层工具 ============
 
@@ -135,7 +137,7 @@ def sign_transaction(tx_id_hex: str, private_key_hex: str) -> str:
                 recovery_id = i
                 break
     except Exception as e:
-        logging.warning(f"recovery_id 推导失败，使用默认值 0: {e}")
+        logger.warning(f"recovery_id 推导失败，使用默认值 0: {e}")
 
     # TRON 签名: r(32) + s(32) + recovery_id(1)
     full_signature = signature + bytes([recovery_id])

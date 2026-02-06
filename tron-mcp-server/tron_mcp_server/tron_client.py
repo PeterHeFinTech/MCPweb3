@@ -2,10 +2,11 @@
 
 import logging
 import os
-import hashlib
 from typing import Optional
 import httpx
 import base58
+
+logger = logging.getLogger(__name__)
 
 # USDT TRC20 合约地址
 # Default to Mainnet if not set
@@ -299,7 +300,7 @@ def check_account_risk(address: str) -> dict:
         feedback_risk = bool(data_v2.get("feedbackRisk", False))
         
     except Exception as e:
-        logging.warning(f"Account detail API failed for {normalized_addr}: {e}")
+        logger.warning(f"Account detail API failed for {normalized_addr}: {e}")
     
     # 保存所有标签（无论是否有风险，蓝标对用户也有参考价值）
     report["tags"] = {
@@ -340,7 +341,7 @@ def check_account_risk(address: str) -> dict:
         send_ad_by_memo = bool(data_sec.get("send_ad_by_memo", False))
         
     except Exception as e:
-        logging.warning(f"Security service API failed for {normalized_addr}: {e}")
+        logger.warning(f"Security service API failed for {normalized_addr}: {e}")
     
     # 🚨 风险判定逻辑 B: 行为类
     if is_black_list:
