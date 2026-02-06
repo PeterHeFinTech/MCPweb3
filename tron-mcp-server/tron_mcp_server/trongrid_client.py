@@ -10,6 +10,7 @@ TronGrid 返回的交易包含 protobuf 序列化的 raw_data_hex 和正确的 t
 
 import os
 import logging
+from decimal import Decimal
 from typing import Optional
 
 import httpx
@@ -111,7 +112,7 @@ def build_trx_transfer(
     Raises:
         ValueError: 参数无效或 API 返回错误
     """
-    amount_sun = int(amount_trx * SUN_PER_TRX)
+    amount_sun = int(Decimal(str(amount_trx)) * SUN_PER_TRX)
 
     data = {
         "owner_address": _base58_to_hex(owner_address),
@@ -135,9 +136,9 @@ def build_trc20_transfer(
     owner_address: str,
     to_address: str,
     amount: float,
-    contract_address: str = None,
+    contract_address: Optional[str] = None,
     decimals: int = 6,
-    fee_limit: int = None,
+    fee_limit: Optional[int] = None,
 ) -> dict:
     """
     通过 TronGrid API 构建 TRC20 代币转账交易
@@ -168,7 +169,7 @@ def build_trc20_transfer(
     to_padded = to_hex_no_prefix.zfill(64)
 
     # 金额转换为最小单位
-    amount_raw = int(amount * (10 ** decimals))
+    amount_raw = int(Decimal(str(amount)) * (10 ** decimals))
     amount_padded = hex(amount_raw)[2:].zfill(64)
 
     parameter = to_padded + amount_padded
