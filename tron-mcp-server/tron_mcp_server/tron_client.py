@@ -563,3 +563,26 @@ def get_trc20_transfer_history(
         params["contract_address"] = contract_address
     
     return _get("token_trc20/transfers", params)
+
+
+def get_internal_transactions(address: str, limit: int = 20, start: int = 0) -> dict:
+    """
+    查询地址的内部交易（合约内部调用产生的转账）
+    调用 TRONSCAN 端点：/api/internal-transaction
+    
+    Args:
+        address: TRON 地址
+        limit: 返回条数，默认 20
+        start: 偏移量，默认 0
+    
+    Returns:
+        API 响应字典（包含 total 和 data 列表）
+    """
+    normalized_addr = _normalize_address(address)
+    params = {
+        "sort": "-timestamp",
+        "limit": limit,
+        "start": start,
+        "address": normalized_addr,
+    }
+    return _get("internal-transaction", params)

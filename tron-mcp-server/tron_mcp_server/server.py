@@ -276,6 +276,33 @@ def tron_get_transaction_history(
     })
 
 
+@mcp.tool()
+def tron_get_internal_transactions(
+    address: str,
+    limit: int = 20,
+    start: int = 0,
+) -> dict:
+    """
+    查询地址的内部交易（合约内部调用产生的转账）。
+    
+    内部交易是智能合约执行过程中产生的转账，不同于普通的直接转账。
+    常见于 DeFi 操作（如 DEX swap）、合约间调用等场景。
+    
+    Args:
+        address: TRON 地址
+        limit: 返回条数，默认 20，最大 50
+        start: 偏移量（分页），默认 0
+    
+    Returns:
+        包含内部交易列表和统计摘要的结果
+    """
+    return call_router.call("get_internal_transactions", {
+        "address": address,
+        "limit": limit,
+        "start": start,
+    })
+
+
 def main():
     """启动 MCP Server（支持 stdio 和 SSE 模式）"""
     import sys

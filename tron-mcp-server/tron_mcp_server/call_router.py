@@ -591,6 +591,49 @@ def _handle_sign_tx(params: dict) -> dict:
         return _error_response("sign_error", f"签名过程异常: {e}")
 
 
+def _handle_get_internal_transactions(params: dict) -> dict:
+    """处理 get_internal_transactions 动作 — 查询内部交易"""
+    address = params.get("address")
+    limit = params.get("limit", 20)
+    start = params.get("start", 0)
+    
+    # 参数校验
+    if not address:
+        return _error_response("missing_param", "缺少必填参数: address")
+    
+    if not validators.is_valid_address(address):
+        return _error_response("invalid_address", f"无效的地址格式: {address}")
+    
+    # 转换并校验 limit
+    try:
+        limit = int(limit)
+        if limit < 1 or limit > 50:
+            return _error_response("invalid_param", f"limit 必须在 1-50 范围内，当前值: {limit}")
+    except (ValueError, TypeError):
+        return _error_response("invalid_param", "limit 必须为整数")
+    
+    # 转换并校验 start
+    try:
+        start = int(start)
+        if start < 0:
+            start = 0
+    except (ValueError, TypeError):
+        return _error_response("invalid_param", "start 必须为非负整数")
+    
+    try:
+        # 查询内部交易
+        data = tron_client.get_internal_transactions(address, limit, start)
+        internal_txs = data.get("data", [])
+        total = data.get("total", 0)
+        
+        # 格式化返回
+        return formatters.format_internal_transactions(address, internal_txs, total, limit)
+    
+    except Exception as e:
+        logger.error(f"查询内部交易失败: {e}", exc_info=True)
+        return _error_response("rpc_error", f"查询失败: {e}")
+
+
 
 # 动作路由表 — 字典映射提升可维护性
 _ACTION_HANDLERS = {
@@ -608,6 +651,7 @@ _ACTION_HANDLERS = {
     "transfer": _handle_transfer,
     "get_wallet_info": _handle_get_wallet_info,
     "get_transaction_history": _handle_get_transaction_history,
+    "get_internal_transactions": _handle_get_internal_transactions,
 }
 
 
