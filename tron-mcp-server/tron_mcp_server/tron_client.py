@@ -147,6 +147,7 @@ def get_balance_trx(address: str) -> float:
             data.get("balanceSun"),
             data.get("totalBalance"),
             data.get("total_balance"),
+            0,  # 兜底值：新地址余额为 0
         )
     )
     return balance_sun / 1_000_000

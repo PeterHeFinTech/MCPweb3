@@ -63,10 +63,27 @@ class TestIsValidAddress(unittest.TestCase):
 
     def test_invalid_address_wrong_length(self):
         """长度不正确的地址应该无效"""
-        self.assertFalse(validators.is_valid_address("T123"))  # 太短（< 20字符）
-        # 注意：validators.py 对 T开头的地址有宽松校验（>= 20字符即可）
-        self.assertTrue(validators.is_valid_address("T" + "a" * 100))  # 长地址在宽松模式下有效
+        self.assertFalse(validators.is_valid_address("T123"))  # 太短
+        # Bug Fix: 移除宽松校验，严格要求 34 字符
+        self.assertFalse(validators.is_valid_address("T" + "a" * 100))  # 长度错误
+        self.assertFalse(validators.is_valid_address("T" + "a" * 20))   # 长度错误
         self.assertFalse(validators.is_valid_address("0x41" + "0" * 30))  # Hex太短
+
+    def test_invalid_address_lenient_validation_bug(self):
+        """测试修复：以 T 开头但格式错误的地址应该被拦截"""
+        # Bug 修复前会通过宽松校验（len >= 20）的无效地址
+        invalid_addresses = [
+            "Thisisnot_a_valid_address!!",  # 包含非法字符
+            "T" + "0" * 33,  # 包含数字 0（Base58 不允许）
+            "T" + "O" * 33,  # 包含字母 O（Base58 不允许）
+            "T" + "I" * 33,  # 包含字母 I（Base58 不允许）
+            "T" + "l" * 33,  # 包含字母 l（Base58 不允许）
+        ]
+        for addr in invalid_addresses:
+            with self.subTest(addr=addr):
+                self.assertFalse(validators.is_valid_address(addr),
+                                 f"地址 {addr} 应该被校验为无效")
+
 
     def test_empty_address(self):
         """空字符串应该无效"""

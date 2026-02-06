@@ -22,8 +22,7 @@ def is_valid_address(address: str) -> bool:
     if address.startswith("T"):
         if len(address) == 34:
             return bool(re.match(r"^T[1-9A-HJ-NP-Za-km-z]{33}$", address))
-        # 宽松校验：以 T 开头且长度合理
-        return len(address) >= 20
+        return False
 
     return False
 
