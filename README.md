@@ -33,19 +33,26 @@
 │   tron-blockchain-skill/            │    │   tron-mcp-server/                  │
 │   (Agent Skill - 知识层)             │    │   (MCP Server - 执行层)              │
 │                                     │    │                                     │
-│   SKILL.md                          │    │   核心工具 (Core Tools):             │
+│   SKILL.md                          │    │   查询工具 (Query Tools):            │
 │   - 教 AI 如何使用工具               │    │   • tron_get_usdt_balance()         │
 │   - 工作流程示例                     │    │   • tron_get_balance()              │
 │   - 错误处理指导                     │    │   • tron_get_gas_parameters()       │
 │                                     │    │   • tron_get_transaction_status()   │
 └─────────────────────────────────────┘    │   • tron_get_network_status()       │
-         AI 读取学习                         │   • tron_build_tx()                 │
-                                           │   • tron_check_account_safety()     │
+         AI 读取学习                         │   • tron_check_account_safety()     │
+                                           │   • tron_get_wallet_info()          │
+                                           │                                     │
+                                           │   转账工具 (Transfer Tools):         │
+                                           │   • tron_build_tx()                 │
+                                           │   • tron_sign_tx()                  │
+                                           │   • tron_broadcast_tx()             │
+                                           │   • tron_transfer() ← 一键闭环      │
                                            │                                     │
                                            │   安全特性 (Security Features):      │
                                            │   🔒 Anti-Fraud (安全审计)           │
                                            │   🛡️ Gas Guard (Gas 卫士)           │
                                            │   👤 Recipient Status Check         │
+                                           │   🔑 本地私钥签名 (不离开本机)        │
                                            │   ⏰ Extended Expiration (10分钟)    │
                                            └─────────────────────────────────────┘
                                                        AI 调用执行
@@ -59,6 +66,10 @@
 - ⛽ **Gas 参数**：获取当前网络 Gas 价格
 - 📊 **交易状态**：查询交易确认状态
 - 🏗️ **交易构建**：构建未签名 USDT/TRX 转账交易
+- ✍️ **本地签名**：使用本地私钥进行 ECDSA secp256k1 签名，私钥不离开本机
+- 📡 **交易广播**：将已签名交易广播到 TRON 网络
+- 🚀 **一键转账闭环**：`tron_transfer` 自动完成 安全检查 → 构建 → 签名 → 广播 全流程
+- 👛 **钱包管理**：查看本地钱包地址及余额，不暴露私钥
 - 🛡️ **Gas 卫士 (Anti-Revert)**：在构建交易前强制检查发送方余额，预估 Gas 费用，拦截"必死交易"
 - 👤 **接收方状态检测**：自动识别接收方地址是否为未激活状态，提示额外能量消耗
 - ⏰ **交易有效期延长**：交易过期时间延长至 10 分钟，为人工签名提供充足时间窗口
@@ -153,6 +164,8 @@ python -m tron_mcp_server.server --sse
 
 ## MCP 工具列表
 
+### 查询工具
+
 | 工具名 | 描述 | 参数 |
 |--------|------|------|
 | `tron_get_usdt_balance` | 查询 USDT 余额 | `address` |
@@ -160,31 +173,57 @@ python -m tron_mcp_server.server --sse
 | `tron_get_gas_parameters` | 获取 Gas 参数 | 无 |
 | `tron_get_transaction_status` | 查询交易确认状态 | `txid` |
 | `tron_get_network_status` | 获取网络状态 | 无 |
+| `tron_check_account_safety` | 检查地址安全性（TRONSCAN 黑名单 + 多维风控） | `address` |
+| `tron_get_wallet_info` | 查看本地钱包地址、TRX/USDT 余额（不暴露私钥） | 无 |
+
+### 转账工具
+
+| 工具名 | 描述 | 参数 |
+|--------|------|------|
 | `tron_build_tx` | 构建未签名交易（含安全审计 + Gas 拦截） | `from_address`, `to_address`, `amount`, `token`, `force_execution` |
-| `tron_check_account_safety` | 检查地址安全性，9 维风控指标 | `address` |
+| `tron_sign_tx` | 构建并签名交易，不广播（需 `TRON_PRIVATE_KEY`） | `from_address`, `to_address`, `amount`, `token` |
+| `tron_broadcast_tx` | 广播已签名交易到 TRON 网络 | `signed_tx_json` |
+| `tron_transfer` | 🚀 一键转账闭环：安全检查 → 构建 → 签名 → 广播 | `to_address`, `amount`, `token`, `force_execution` |
 
 ## 项目结构
 
 ```
 .
-├── tron-blockchain-skill/    # Agent Skill（知识层）
-│   ├── SKILL.md              # AI 读取的技能说明
+├── tron-blockchain-skill/           # Agent Skill（知识层）
+│   ├── SKILL.md                     # AI 读取的技能说明
 │   └── LICENSE.txt
-├── tron-mcp-server/          # MCP Server（执行层）
-│   ├── tron_mcp_server/      # Python 包
-│   ├── requirements.txt      # 依赖
-│   └── .env.example          # 环境变量示例
-├── Changelog.md              # 更新日志
-└── README.md                 # 本文件
+├── tron-mcp-server/                 # MCP Server（执行层）
+│   ├── tron_mcp_server/             # Python 包
+│   │   ├── __init__.py              # 包入口
+│   │   ├── server.py                # MCP Server 入口（暴露 tron_* 工具）
+│   │   ├── call_router.py           # 调用路由器
+│   │   ├── skills.py                # 技能清单定义
+│   │   ├── tron_client.py           # TRONSCAN REST 客户端（查询）
+│   │   ├── trongrid_client.py       # TronGrid API 客户端（交易构建/广播）
+│   │   ├── tx_builder.py            # 交易构建器（含安全检查）
+│   │   ├── key_manager.py           # 本地私钥管理（签名/地址派生）
+│   │   ├── validators.py            # 参数校验
+│   │   ├── formatters.py            # 输出格式化
+│   │   └── config.py                # 配置管理
+│   ├── test_known_issues.py         # 已知问题测试
+│   ├── test_transfer_flow.py        # 转账流程测试
+│   ├── test_tx_builder_new.py       # 交易构建测试
+│   ├── requirements.txt             # 依赖
+│   └── .env.example                 # 环境变量示例
+├── Changelog.md                     # 更新日志
+└── README.md                        # 本文件
 ```
 
 ## 技术细节
 
 - **USDT 合约**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 位小数)
-- **API**: TRONSCAN REST
-- **主要接口**: account, chainparameters, transaction-info, block
+- **查询 API**: TRONSCAN REST（余额、交易状态、Gas 参数、安全检查）
+- **交易 API**: TronGrid（构建真实交易、广播签名交易）
+- **签名算法**: ECDSA secp256k1 + RFC 6979 确定性签名
+- **地址派生**: 私钥 → secp256k1 公钥 → Keccak256 → Base58Check
 - **传输协议**: stdio（默认）/ SSE（`--sse` 启动）
 - **默认端口**: 8765（SSE 模式，可通过 `MCP_PORT` 环境变量修改）
+- **关键依赖**: `mcp`, `httpx`, `ecdsa`, `pycryptodome`, `base58`
 
 ## 🔒 安全审计 (Anti-Fraud)
 
@@ -288,7 +327,15 @@ A: 可以直接运行 `python -m tron_mcp_server.server` 查看控制台输出�
 A: 目前支持 TRX（原生代币）和 USDT（TRC20）。未来可扩展支持更多 TRC20 代币。
 
 ### Q6: 交易构建后如何签名和广播？
-A: `build_tx` 工具仅生成未签名交易，需要用户使用私钥管理工具（如 TronLink、硬件钱包）在本地签名，然后通过 TRON 节点广播。
+A: 有两种方式：
+1. **使用内置工具（推荐）**：设置环境变量 `TRON_PRIVATE_KEY`，然后使用 `tron_sign_tx` 签名 + `tron_broadcast_tx` 广播，或直接用 `tron_transfer` 一键完成全流程。
+2. **使用外部工具**：`tron_build_tx` 生成未签名交易后，使用 TronLink、硬件钱包等私钥管理工具在本地签名，然后通过 TRON 节点广播。
+
+### Q8: 如何配置本地私钥用于签名？
+A: 设置环境变量 `TRON_PRIVATE_KEY` 为 64 位十六进制字符串（不含 0x 前缀）。私钥仅在本地使用，不会通过 MCP 工具暴露给 AI Agent。
+
+### Q9: `tron_transfer` 一键转账安全吗？
+A: `tron_transfer` 在广播前会自动执行全部安全检查（Anti-Fraud 安全审计 + Gas Guard 余额拦截 + 接收方状态检测）。私钥始终在本地完成签名，不离开本机。
 
 ### Q7: API 速率限制怎么办？
 A: 可以在 `.env` 中配置 `TRONSCAN_API_KEY` 以提高速率限制，或实现请求缓存。
@@ -367,19 +414,26 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
 │   tron-blockchain-skill/            │    │   tron-mcp-server/                  │
 │   (Agent Skill - Knowledge)         │    │   (MCP Server - Execution)          │
 │                                     │    │                                     │
-│   SKILL.md                          │    │   Core Tools:                       │
+│   SKILL.md                          │    │   Query Tools:                      │
 │   - Teach AI how to use tools       │    │   • tron_get_usdt_balance()         │
 │   - Workflow examples               │    │   • tron_get_balance()              │
 │   - Error handling guidance         │    │   • tron_get_gas_parameters()       │
 │                                     │    │   • tron_get_transaction_status()   │
 └─────────────────────────────────────┘    │   • tron_get_network_status()       │
-         AI reads and learns                │   • tron_build_tx()                 │
-                                           │   • tron_check_account_safety()     │
+         AI reads and learns                │   • tron_check_account_safety()     │
+                                           │   • tron_get_wallet_info()          │
+                                           │                                     │
+                                           │   Transfer Tools:                   │
+                                           │   • tron_build_tx()                 │
+                                           │   • tron_sign_tx()                  │
+                                           │   • tron_broadcast_tx()             │
+                                           │   • tron_transfer() ← Full Flow     │
                                            │                                     │
                                            │   Security Features:                │
                                            │   🔒 Anti-Fraud (Security Audit)    │
                                            │   🛡️ Gas Guard (Anti-Revert)        │
                                            │   👤 Recipient Status Check         │
+                                           │   🔑 Local Key Signing              │
                                            │   ⏰ Extended Expiration (10min)    │
                                            └─────────────────────────────────────┘
                                                        AI calls and executes
@@ -395,6 +449,10 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
 - ⛽ **Gas Parameters**: Get current network gas prices
 - 📊 **Transaction Status**: Query transaction confirmation status
 - 🏗️ **Transaction Building**: Build unsigned USDT/TRX transfer transactions
+- ✍️ **Local Signing**: ECDSA secp256k1 signing with local private key — key never leaves the machine
+- 📡 **Transaction Broadcasting**: Broadcast signed transactions to TRON network
+- 🚀 **One-Click Transfer**: `tron_transfer` auto-completes full flow: safety check → build → sign → broadcast
+- 👛 **Wallet Management**: View local wallet address and balances without exposing private key
 - 🛡️ **Gas Guard (Anti-Revert)**: Pre-validates sender balance and estimated gas before building transactions to prevent doomed transactions
 - 👤 **Recipient Status Check**: Automatically detects if recipient address is unactivated, warns about extra energy costs
 - ⏰ **Extended Expiration**: Transaction expiration extended to 10 minutes, providing sufficient time for manual signing
@@ -493,6 +551,8 @@ Edit `claude_desktop_config.json`:
 
 ## MCP Tools
 
+### Query Tools
+
 | Tool Name | Description | Parameters |
 |-----------|-------------|------------|
 | `tron_get_usdt_balance` | Query USDT balance | `address` |
@@ -500,8 +560,17 @@ Edit `claude_desktop_config.json`:
 | `tron_get_gas_parameters` | Get Gas parameters | None |
 | `tron_get_transaction_status` | Query transaction confirmation status | `txid` |
 | `tron_get_network_status` | Get network status | None |
+| `tron_check_account_safety` | Check address safety (TRONSCAN blacklist + multi-dim risk scan) | `address` |
+| `tron_get_wallet_info` | View local wallet address & TRX/USDT balances (no key exposure) | None |
+
+### Transfer Tools
+
+| Tool Name | Description | Parameters |
+|-----------|-------------|------------|
 | `tron_build_tx` | Build unsigned transaction (with security audit + gas guard) | `from_address`, `to_address`, `amount`, `token`, `force_execution` |
-| `tron_check_account_safety` | Check address safety with 9-dimension risk scan | `address` |
+| `tron_sign_tx` | Build & sign transaction without broadcasting (requires `TRON_PRIVATE_KEY`) | `from_address`, `to_address`, `amount`, `token` |
+| `tron_broadcast_tx` | Broadcast signed transaction to TRON network | `signed_tx_json` |
+| `tron_transfer` | 🚀 One-click transfer: safety check → build → sign → broadcast | `to_address`, `amount`, `token`, `force_execution` |
 
 <a name="project-structure-en"></a>
 
@@ -509,15 +578,29 @@ Edit `claude_desktop_config.json`:
 
 ```
 .
-├── tron-blockchain-skill/    # Agent Skill (Knowledge layer)
-│   ├── SKILL.md              # Skill documentation for AI
+├── tron-blockchain-skill/           # Agent Skill (Knowledge layer)
+│   ├── SKILL.md                     # Skill documentation for AI
 │   └── LICENSE.txt
-├── tron-mcp-server/          # MCP Server (Execution layer)
-│   ├── tron_mcp_server/      # Python package
-│   ├── requirements.txt      # Dependencies
-│   └── .env.example          # Environment variables example
-├── Changelog.md              # Update log
-└── README.md                 # This file
+├── tron-mcp-server/                 # MCP Server (Execution layer)
+│   ├── tron_mcp_server/             # Python package
+│   │   ├── __init__.py              # Package entry
+│   │   ├── server.py                # MCP Server entry (exposes tron_* tools)
+│   │   ├── call_router.py           # Call router
+│   │   ├── skills.py                # Skill manifest definitions
+│   │   ├── tron_client.py           # TRONSCAN REST client (queries)
+│   │   ├── trongrid_client.py       # TronGrid API client (tx build/broadcast)
+│   │   ├── tx_builder.py            # Transaction builder (with safety checks)
+│   │   ├── key_manager.py           # Local private key management (sign/derive)
+│   │   ├── validators.py            # Parameter validation
+│   │   ├── formatters.py            # Output formatting
+│   │   └── config.py                # Configuration management
+│   ├── test_known_issues.py         # Known issues tests
+│   ├── test_transfer_flow.py        # Transfer flow tests
+│   ├── test_tx_builder_new.py       # Transaction builder tests
+│   ├── requirements.txt             # Dependencies
+│   └── .env.example                 # Environment variables example
+├── Changelog.md                     # Update log
+└── README.md                        # This file
 ```
 
 <a name="technical-details-en"></a>
@@ -525,10 +608,13 @@ Edit `claude_desktop_config.json`:
 ## Technical Details
 
 - **USDT Contract**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 decimals)
-- **API**: TRONSCAN REST
-- **Main Endpoints**: account, chainparameters, transaction-info, block
+- **Query API**: TRONSCAN REST (balances, tx status, gas params, security checks)
+- **Transaction API**: TronGrid (build real transactions, broadcast signed transactions)
+- **Signing Algorithm**: ECDSA secp256k1 + RFC 6979 deterministic signing
+- **Address Derivation**: Private key → secp256k1 pubkey → Keccak256 → Base58Check
 - **Transport Protocol**: stdio (default) / SSE (`--sse` startup)
 - **Default Port**: 8765 (SSE mode, configurable via `MCP_PORT` environment variable)
+- **Key Dependencies**: `mcp`, `httpx`, `ecdsa`, `pycryptodome`, `base58`
 
 ## 🔒 Security Audit (Anti-Fraud)
 
@@ -583,7 +669,15 @@ A: Run `python -m tron_mcp_server.server` directly to see console output, or add
 A: Currently supports TRX (native token) and USDT (TRC20). More TRC20 tokens can be supported in the future.
 
 ### Q6: How to sign and broadcast after building a transaction?
-A: The `build_tx` tool only generates unsigned transactions. Users need to sign with private key management tools (like TronLink, hardware wallets) locally, then broadcast through TRON nodes.
+A: Two options:
+1. **Built-in tools (recommended)**: Set env var `TRON_PRIVATE_KEY`, then use `tron_sign_tx` + `tron_broadcast_tx`, or simply use `tron_transfer` for one-click full flow.
+2. **External tools**: After `tron_build_tx` generates unsigned transaction, sign with TronLink, hardware wallet, etc., then broadcast via TRON nodes.
+
+### Q8: How to configure local private key for signing?
+A: Set env var `TRON_PRIVATE_KEY` to a 64-char hex string (without 0x prefix). The key is only used locally and never exposed to AI Agent via MCP tools.
+
+### Q9: Is `tron_transfer` one-click transfer secure?
+A: `tron_transfer` runs all security checks (Anti-Fraud + Gas Guard + Recipient Status) before broadcasting. The private key always remains local — signing happens on your machine only.
 
 ### Q7: What about API rate limits?
 A: Configure `TRONSCAN_API_KEY` in `.env` to increase rate limits, or implement request caching.
