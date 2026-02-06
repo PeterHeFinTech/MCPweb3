@@ -1,23 +1,36 @@
 ---
 name: tron-blockchain
-description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直接调用。用于查询 USDT/TRX 余额、获取 Gas 参数、检查交易状态、构建未签名交易、安全检查、转账等。
+description: 与 TRON 区块链交互的完整技能集。提供 14 个 MCP 标准工具，涵盖数据查询（余额、交易历史、代币持仓、内部交易、网络状态、安全检查）和交易操作（构建、签名、广播、一键转账）。支持 TRX/USDT 转账、地址安全验证、资产概览等全流程区块链操作。
 ---
 
 # TRON 区块链操作技能
 
 ## 概述
 
-此技能使你能够与 TRON 区块链进行交互，完成常见的链上操作任务。所有工具都通过 `tron_*` 系列命名，可以直接调用。
+此技能使你能够与 TRON 区块链进行全面交互，提供完整的链上操作能力。基于 Model Context Protocol (MCP) 标准，通过 `tron-mcp-server` 暴露 **14 个原子工具**，支持智能工作流编排。
 
-**关键词**: TRON, TRX, USDT, TRC20, 余额查询, Gas, 交易状态, 转账, 区块链, 安全检查
+### 架构理念
+- **MCP 层**：提供原子化的工具（查询、构建、签名、广播等），每个工具职责单一
+- **Skill 层**：编排多个工具形成完整工作流（如安全转账 = 安全检查 + 构建 + 签名 + 广播）
+- **命名规范**：所有工具统一使用 `tron_*` 前缀，遵循 MCP 最佳实践
+
+**核心能力**:
+- 🔍 数据查询：余额、交易历史、代币持仓、内部交易、网络状态
+- 🔒 安全防护：地址安全检查、钓鱼/诈骗地址识别、零容忍熔断机制
+- 💸 交易操作：构建、签名、广播、一键转账（支持 TRX/USDT）
+- 📊 资产管理：多代币余额、交易记录、钱包概览
+
+**关键词**: TRON, TRX, USDT, TRC20, MCP, 余额查询, 交易历史, 内部交易, 代币持仓, 安全检查, 转账, 区块链
 
 ---
 
 ## 可用工具
 
-此技能通过 `tron-mcp-server` MCP 服务器提供以下工具：
+此技能通过 `tron-mcp-server` MCP 服务器提供 **14 个标准工具**，分为两大类：
 
-### 1. `tron_get_usdt_balance`
+### 数据查询类（9 个工具）
+
+#### 1. `tron_get_usdt_balance`
 查询指定地址的 USDT (TRC20) 余额。
 
 **参数:**
@@ -39,7 +52,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 2. `tron_get_balance`
+#### 2. `tron_get_balance`
 查询指定地址的 TRX 原生代币余额。
 
 **参数:**
@@ -53,7 +66,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 3. `tron_get_gas_parameters`
+#### 3. `tron_get_gas_parameters`
 获取当前网络的 Gas/能量价格参数。
 
 **参数:** 无
@@ -69,7 +82,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 4. `tron_get_transaction_status`
+#### 4. `tron_get_transaction_status`
 查询交易的确认状态。
 
 **参数:**
@@ -90,7 +103,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 5. `tron_get_network_status`
+#### 5. `tron_get_network_status`
 获取 TRON 网络当前状态。
 
 **参数:** 无
@@ -102,7 +115,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 6. `tron_check_account_safety`
+#### 6. `tron_check_account_safety`
 检查指定地址是否为恶意地址（钓鱼、诈骗等）。
 
 **参数:**
@@ -129,30 +142,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 7. `tron_get_wallet_info`
-查看当前配置的钱包信息。
-
-**参数:** 无
-
-**前置条件:** 需设置环境变量 `TRON_PRIVATE_KEY`
-
-**返回:**
-- `address`: 钱包地址
-- `trx_balance`: TRX 余额
-- `usdt_balance`: USDT 余额
-- `summary`: 人类可读的摘要
-
-**安全性:** 不会暴露私钥本身，仅显示从私钥派生的地址和余额
-
-**示例:**
-```
-查看钱包信息
-→ 返回: "钱包地址 Txxx..., TRX 余额 100.5, USDT 余额 500.0"
-```
-
----
-
-### 8. `tron_get_transaction_history`
+#### 7. `tron_get_transaction_history`
 查询指定地址的交易历史记录。
 
 **参数:**
@@ -171,8 +161,21 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 - `total`: 总交易数
 - `displayed`: 当前返回的交易数
 - `token_filter`: 代币筛选条件
-- `transfers`: 交易列表
+- `transfers`: 交易列表，每笔交易包含：
+  - `timestamp`: 时间戳
+  - `block`: 区块高度
+  - `txID`: 交易哈希
+  - `from`: 发送方地址
+  - `to`: 接收方地址
+  - `amount`: 转账金额
+  - `token_name`: 代币名称
+  - `status`: 交易状态
 - `summary`: 人类可读的摘要
+
+**使用场景:**
+- 查看地址的历史转账记录
+- 追踪特定代币的流动
+- 分析账户活跃度
 
 **示例:**
 ```
@@ -182,7 +185,84 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 9. `tron_build_tx`
+#### 8. `tron_get_internal_transactions`
+查询地址的内部交易（合约内部调用产生的转账）。
+
+内部交易是智能合约执行过程中产生的转账，不同于普通的直接转账。
+常见于 DeFi 操作（如 DEX swap）、合约间调用等场景。
+
+**参数:**
+- `address` (必填): TRON 地址
+- `limit` (可选): 返回条数，默认 20，最大 50
+- `start` (可选): 偏移量（分页），默认 0
+
+**返回:**
+- `address`: 查询地址
+- `total`: 总内部交易数
+- `displayed`: 当前返回的交易数
+- `internal_transactions`: 内部交易列表，每笔交易包含：
+  - `hash`: 父交易哈希
+  - `block`: 区块高度
+  - `timestamp`: 时间戳
+  - `from`: 发送方地址
+  - `to`: 接收方地址
+  - `value`: 转账金额（TRX，单位 SUN）
+  - `call_value`: 调用时的金额
+  - `note`: 备注信息
+- `summary`: 人类可读的摘要
+
+**使用场景:**
+- 追踪智能合约产生的 TRX 转账
+- 分析 DeFi 操作细节
+- 调试合约调用链
+
+**示例:**
+```
+查询地址的内部交易记录
+→ 返回合约调用产生的 TRX 转账列表
+```
+
+---
+
+#### 9. `tron_get_account_tokens`
+查询地址持有的所有代币列表（TRX + TRC20 + TRC10）。
+
+返回完整的代币持仓信息，适用于资产概览、异常代币检测等场景。
+
+**参数:**
+- `address` (必填): TRON 地址
+
+**返回:**
+- `address`: 查询地址
+- `token_count`: 持有的代币种类数量
+- `tokens`: 代币列表，每个代币包含：
+  - `token_id`: 代币 ID（TRC10）或合约地址（TRC20）
+  - `token_name`: 代币名称
+  - `token_abbr`: 代币缩写
+  - `token_type`: 代币类型（TRC10/TRC20/TRX）
+  - `balance`: 余额（可读格式）
+  - `balance_raw`: 原始余额（最小单位）
+  - `token_decimal`: 小数位数
+  - `token_can_show`: 是否可显示（True/False）
+- `summary`: 人类可读的摘要
+
+**使用场景:**
+- 查看钱包完整资产列表
+- 检测空投的未知代币
+- 资产组合分析
+- 发现异常代币（可能的垃圾币/诈骗币）
+
+**示例:**
+```
+查询地址持有的所有代币
+→ 返回: "地址 Txxx... 持有 5 种代币：TRX (100.5), USDT (500), Token1 (1000), ..."
+```
+
+---
+
+### 交易操作类（5 个工具）
+
+#### 10. `tron_build_tx`
 构建未签名的转账交易。
 
 **参数:**
@@ -215,7 +295,39 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 10. `tron_broadcast_tx`
+#### 11. `tron_sign_tx`
+对未签名交易进行本地签名（不广播）。
+
+接受 `tron_build_tx` 返回的未签名交易 JSON 字符串，
+使用本地私钥进行 ECDSA secp256k1 签名。
+
+签名在本地完成，私钥永远不会通过网络传输。
+
+**参数:**
+- `unsigned_tx_json` (必填): `tron_build_tx` 返回的未签名交易 JSON 字符串
+
+**前置条件:** 需设置环境变量 `TRON_PRIVATE_KEY`
+
+**返回:**
+- `signed_tx`: 签名后的交易对象
+- `signed_tx_json`: 签名后的交易 JSON 字符串（可直接用于广播）
+- `txID`: 交易哈希
+- `summary`: 人类可读的摘要
+
+**使用场景:**
+- 离线签名工作流（构建 → 签名 → 广播分离）
+- 冷钱包签名集成
+- 多签场景
+
+**示例:**
+```
+对未签名交易进行签名
+→ 返回: "✅ 交易签名成功！交易 ID: abc123..."
+```
+
+---
+
+#### 12. `tron_broadcast_tx`
 广播已签名的交易到 TRON 网络。
 
 **参数:**
@@ -238,7 +350,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
-### 11. `tron_transfer`
+#### 13. `tron_transfer`
 一键转账闭环：安全检查 → 构建交易 → 签名 → 广播。
 
 **参数:**
@@ -271,9 +383,40 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 
 ---
 
+#### 14. `tron_get_wallet_info`
+查看当前配置的钱包信息。
+
+返回本地私钥对应的地址及其 TRX / USDT 余额。
+不会暴露私钥本身。
+
+**参数:** 无
+
+**前置条件:** 需设置环境变量 `TRON_PRIVATE_KEY`
+
+**返回:**
+- `address`: 钱包地址
+- `trx_balance`: TRX 余额
+- `usdt_balance`: USDT 余额
+- `summary`: 人类可读的摘要
+
+**安全性:** 不会暴露私钥本身，仅显示从私钥派生的地址和余额
+
+**使用场景:**
+- 查看当前操作钱包的基本信息
+- 确认交易前的余额状态
+- 验证私钥配置是否正确
+
+**示例:**
+```
+查看钱包信息
+→ 返回: "钱包地址 Txxx..., TRX 余额 100.5, USDT 余额 500.0"
+```
+
+---
+
 ## 工作流程指南
 
-### 查询余额
+### 查询余额（单代币）
 
 ```
 用户: "查一下这个地址有多少 USDT: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
@@ -281,6 +424,17 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 步骤:
 1. 调用 tron_get_usdt_balance(address="TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
 2. 返回余额信息给用户
+```
+
+### 查询全部资产
+
+```
+用户: "查一下这个地址有什么代币"
+
+步骤:
+1. 调用 tron_get_account_tokens(address="Txxx") 获取所有持有的代币
+2. 对每个主要代币（TRX/USDT）调用对应的余额查询工具获取详细信息
+3. 汇总展示资产列表
 ```
 
 ### 检查交易状态
@@ -294,7 +448,7 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 3. 如果状态是成功/失败，告知用户结果
 ```
 
-### 安全转账（分步骤）
+### 安全转账（三步走：构建 → 签名 → 广播）
 
 ```
 用户: "帮我转 100 USDT 到 Tyyyy"
@@ -306,19 +460,33 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 3. 调用 tron_get_usdt_balance(address=钱包地址) 检查余额是否充足
 4. 调用 tron_get_balance(address=钱包地址) 检查 TRX 余额是否足够支付 Gas
 5. 调用 tron_build_tx(from_address=钱包地址, to_address="Tyyyy", amount=100, token="USDT") 构建交易
-6. 调用 tron_broadcast_tx(signed_tx_json=签名后的交易) 广播交易
-7. 调用 tron_get_transaction_status(txid=交易哈希) 确认交易结果
+   - 此步骤会自动进行安全检查，如果检测到风险会拒绝构建
+6. 调用 tron_sign_tx(unsigned_tx_json=上一步返回的 unsigned_tx JSON 字符串) 对交易签名
+7. 调用 tron_broadcast_tx(signed_tx_json=签名后的交易 JSON) 广播交易
+8. 调用 tron_get_transaction_status(txid=交易哈希) 确认交易结果
 ```
 
-### 查看钱包概况
+### 一键转账（便捷闭环）
+
+```
+用户: "快速转 50 USDT 到 Tyyyy"
+
+步骤:
+1. 调用 tron_transfer(to_address="Tyyyy", amount=50, token="USDT")
+   - 内部自动完成：安全检查 → 构建 → 签名 → 广播
+2. 将转账结果返回给用户
+```
+
+### 资产概览（代币 + 历史）
 
 ```
 用户: "看看我的钱包"
 
 步骤:
-1. 调用 tron_get_wallet_info() 获取地址和余额
-2. 调用 tron_get_transaction_history(address=钱包地址, limit=5) 获取最近交易
-3. 汇总展示钱包地址、TRX/USDT 余额、最近交易
+1. 调用 tron_get_wallet_info() 获取地址和主要余额（TRX/USDT）
+2. 调用 tron_get_account_tokens(address=钱包地址) 获取所有持有的代币
+3. 调用 tron_get_transaction_history(address=钱包地址, limit=5) 获取最近交易
+4. 汇总展示钱包地址、资产列表、最近交易
 ```
 
 ### 地址安全分析
@@ -333,27 +501,28 @@ description: 与 TRON 区块链交互的技能。通过 tron_* 系列工具直�
 4. 综合分析并给出安全评估
 ```
 
-### 快速转账（便捷入口）
+### DeFi 操作追踪
 
 ```
-用户: "快速转 50 USDT 到 Tyyyy"
+用户: "查一下这个地址的 DeFi 操作记录"
 
 步骤:
-1. 调用 tron_transfer(to_address="Tyyyy", amount=50, token="USDT")
-   - 内部自动完成：安全检查 → 构建 → 签名 → 广播
-2. 将转账结果返回给用户
+1. 调用 tron_get_transaction_history(address="Txxxx", limit=20) 查看普通转账
+2. 调用 tron_get_internal_transactions(address="Txxxx", limit=20) 查看内部交易
+   - 内部交易通常反映智能合约调用（DEX swap、质押等）
+3. 综合分析两类交易，识别 DeFi 操作模式
 ```
 
-### 构建转账交易
+### 构建未签名交易（离线签名场景）
 
 ```
-用户: "帮我生成一个转账交易，从我的地址转 50 USDT 到 Tyyyy"
+用户: "帮我生成一个转账交易，从我的地址转 50 USDT 到 Tyyyy，但先不要签名"
 
 步骤:
 1. 先调用 tron_get_usdt_balance 检查发送方余额是否足够
 2. 调用 tron_get_gas_parameters 获取当前 Gas 价格
 3. 调用 tron_build_tx(from_address="Txxxx", to_address="Tyyyy", amount=50, token="USDT")
-4. 返回未签名交易，提醒用户需要签名后广播
+4. 返回未签名交易 JSON，提醒用户需要使用 tron_sign_tx 签名后再用 tron_broadcast_tx 广播
 ```
 
 ---
