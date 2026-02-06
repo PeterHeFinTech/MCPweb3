@@ -149,6 +149,28 @@ def tron_check_account_safety(address: str) -> dict:
 # ============ 转账闭环工具（签名 / 广播 / 一键转账）============
 
 @mcp.tool()
+def tron_sign_tx(unsigned_tx_json: str) -> dict:
+    """
+    对未签名交易进行本地签名。不广播。
+    
+    接受 tron_build_tx 返回的 unsigned_tx JSON 字符串，
+    使用本地私钥进行 ECDSA secp256k1 签名。
+    
+    签名在本地完成，私钥永远不会通过网络传输。
+    
+    前置条件：需设置环境变量 TRON_PRIVATE_KEY。
+    
+    Args:
+        unsigned_tx_json: tron_build_tx 返回的未签名交易 JSON 字符串
+    
+    Returns:
+        包含 signed_tx, signed_tx_json, txID, summary 的签名结果。
+        使用 tron_broadcast_tx 广播签名后的交易。
+    """
+    return call_router.call("sign_tx", {"unsigned_tx_json": unsigned_tx_json})
+
+
+@mcp.tool()
 def tron_broadcast_tx(signed_tx_json: str) -> dict:
     """
     广播已签名的交易到 TRON 网络。
