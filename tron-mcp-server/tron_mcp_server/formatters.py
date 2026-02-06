@@ -1,5 +1,7 @@
 """格式化模块 - 结构化输出 + 自然语言摘要"""
 
+import json
+
 
 def format_usdt_balance(address: str, balance_raw: int) -> dict:
     """
@@ -200,7 +202,6 @@ def format_signed_tx(
     token: str,
 ) -> dict:
     """格式化已签名交易结果"""
-    import json
     tx_id = signed_tx.get("txID", "")
     return {
         "signed_tx": signed_tx,
