@@ -15,6 +15,8 @@ from typing import Optional
 import httpx
 import base58
 
+logger = logging.getLogger(__name__)
+
 
 # ============ 配置 ============
 

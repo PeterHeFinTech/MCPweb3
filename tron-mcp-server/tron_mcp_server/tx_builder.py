@@ -8,6 +8,8 @@ import base58
 from . import tron_client
 from . import validators
 
+logger = logging.getLogger(__name__)
+
 
 # SUN 与 TRX 的转换倍数 (1 TRX = 1,000,000 SUN)
 SUN_PER_TRX = 1_000_000
@@ -108,8 +110,9 @@ def _trigger_smart_contract(to: str, amount: float, from_addr: str, token: str) 
         "timestamp": timestamp,
     }
     
-    # 注意: 此 txID 仅用于预览标识，不用于签名。
-    # 真正的 txID 是 protobuf 序列化 raw_data 的 SHA256，由 TronGrid API 返回。
+    # 注意: 此 txID 为预览占位符（基于 Python dict 的 SHA256），
+    # 不等于链上真实 txID（需 protobuf 序列化后计算）。
+    # 仅用于在构建阶段唯一标识交易，不可用于签名或链上查询。
     tx_id = hashlib.sha256(str(raw_data).encode()).hexdigest()
     return {"txID": tx_id, "raw_data": raw_data}
 
@@ -141,8 +144,9 @@ def _build_trx_transfer(from_addr: str, to_addr: str, amount: float) -> dict:
         "timestamp": timestamp,
     }
     
-    # 注意: 此 txID 仅用于预览标识，不用于签名。
-    # 真正的 txID 是 protobuf 序列化 raw_data 的 SHA256，由 TronGrid API 返回。
+    # 注意: 此 txID 为预览占位符（基于 Python dict 的 SHA256），
+    # 不等于链上真实 txID（需 protobuf 序列化后计算）。
+    # 仅用于在构建阶段唯一标识交易，不可用于签名或链上查询。
     tx_id = hashlib.sha256(str(raw_data).encode()).hexdigest()
     return {"txID": tx_id, "raw_data": raw_data}
 
@@ -208,7 +212,7 @@ def check_sender_balance(
         trx_balance = tron_client.get_balance_trx(from_address)
         trx_balance_sun = int(trx_balance * SUN_PER_TRX)
     except Exception as e:
-        logging.warning(f"检查发送方 TRX 余额失败 ({from_address}): {e}")
+        logger.warning(f"检查发送方 TRX 余额失败 ({from_address}): {e}")
         # 如果无法查询余额，不阻止交易（保守策略）
         return {
             "checked": False,
@@ -223,7 +227,7 @@ def check_sender_balance(
         try:
             usdt_balance = tron_client.get_usdt_balance(from_address)
         except Exception as e:
-            logging.warning(f"检查发送方 USDT 余额失败 ({from_address}): {e}")
+            logger.warning(f"检查发送方 USDT 余额失败 ({from_address}): {e}")
             return {
                 "checked": False,
                 "sufficient": None,
@@ -331,7 +335,7 @@ def check_recipient_status(to_address: str) -> dict:
         account_status = tron_client.get_account_status(to_address)
     except Exception as e:
         # 如果查询失败，记录错误信息并返回未知状态，不阻止交易
-        logging.warning(f"检查接收方账户状态失败 ({to_address}): {e}")
+        logger.warning(f"检查接收方账户状态失败 ({to_address}): {e}")
         return {
             "checked": False,
             "warnings": [],
@@ -392,7 +396,7 @@ def check_recipient_security(to_address: str) -> dict:
     try:
         risk_info = tron_client.check_account_risk(to_address)
     except Exception as e:
-        logging.warning(f"安全检查失败 ({to_address}): {e}")
+        logger.warning(f"安全检查失败 ({to_address}): {e}")
         return {
             "checked": False,
             "is_risky": False,
@@ -496,7 +500,7 @@ def build_unsigned_tx(
         
         # 如果强制执行了，记录日志
         if security_check.get("is_risky") and force_execution:
-            logging.warning(f"⚠️ 用户强制忽略风险，向 {to_address} 转账... 风险类型: {security_check.get('risk_type')}")
+            logger.warning(f"⚠️ 用户强制忽略风险，向 {to_address} 转账... 风险类型: {security_check.get('risk_type')}")
 
     # 策略二：预先检查发送方余额，拒绝必死交易
     # 在 Builder 阶段拦截余额不足的交易是 0 成本的

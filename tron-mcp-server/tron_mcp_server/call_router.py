@@ -12,6 +12,8 @@ from . import validators
 from . import formatters
 from .key_manager import KeyManager
 
+logger = logging.getLogger(__name__)
+
 # 全局 KeyManager 实例
 _key_manager = KeyManager()
 
@@ -111,60 +113,17 @@ def call(action: str, params: dict = None) -> dict:
     if params is None:
         params = {}
 
-    # 路由到具体动作
-    if action == "skills":
-        return _handle_skills()
-
-    elif action == "get_usdt_balance":
-        return _handle_get_usdt_balance(params)
-
-    elif action == "get_balance":
-        return _handle_get_balance(params)
-
-    elif action == "get_gas_parameters":
-        return _handle_get_gas_parameters()
-
-    elif action == "get_transaction_status":
-        return _handle_get_transaction_status(params)
-
-    elif action == "get_network_status":
-        return _handle_get_network_status()
-
-    elif action == "get_account_status":
-        return _handle_get_account_status(params)
-
-    elif action == "sign_and_broadcast":
-        return _handle_sign_and_broadcast(params)
-
-    elif action == "check_account_safety":
-        return _handle_check_account_safety(params)
-
-    elif action == "build_tx":
-        return _handle_build_tx(params)
-
-    elif action == "sign_tx":
-        return _handle_sign_tx(params)
-
-    elif action == "broadcast_tx":
-        return _handle_broadcast_tx(params)
-
-    elif action == "transfer":
-        return _handle_transfer(params)
-
-    elif action == "get_wallet_info":
-        return _handle_get_wallet_info()
-
-    elif action == "get_transaction_history":
-        return _handle_get_transaction_history(params)
-
-    else:
+    # 路由到具体动作（字典映射）
+    handler = _ACTION_HANDLERS.get(action)
+    if handler is None:
         return _error_response(
             "unknown_action",
             f"未知的动作: {action}",
         )
+    return handler(params)
 
 
-def _handle_skills() -> dict:
+def _handle_skills(params: dict) -> dict:
     """处理 skills 动作 - 返回技能列表"""
     return _get_skills()
 
@@ -199,7 +158,7 @@ def _handle_get_balance(params: dict) -> dict:
         return _error_response("rpc_error", str(e))
 
 
-def _handle_get_gas_parameters() -> dict:
+def _handle_get_gas_parameters(params: dict) -> dict:
     """处理 get_gas_parameters 动作"""
     try:
         return _get_gas_parameters()
@@ -233,7 +192,7 @@ def _handle_get_transaction_status(params: dict) -> dict:
         return _error_response("unknown", f"未知异常: {e}")
 
 
-def _handle_get_network_status() -> dict:
+def _handle_get_network_status(params: dict) -> dict:
     """处理 get_network_status 动作"""
     try:
         return _get_network_status()
@@ -400,7 +359,7 @@ def _handle_sign_tx(params: dict) -> dict:
     except ValueError as e:
         return _error_response("sign_error", str(e))
     except Exception as e:
-        logging.error(f"签名失败: {e}", exc_info=True)
+        logger.error(f"签名失败: {e}", exc_info=True)
         return _error_response("sign_error", f"签名过程异常: {e}")
 
 
@@ -425,7 +384,7 @@ def _handle_broadcast_tx(params: dict) -> dict:
     except ValueError as e:
         return _error_response("broadcast_error", str(e))
     except Exception as e:
-        logging.error(f"广播失败: {e}", exc_info=True)
+        logger.error(f"广播失败: {e}", exc_info=True)
         return _error_response("broadcast_error", f"广播过程异常: {e}")
 
 
@@ -514,7 +473,7 @@ def _handle_transfer(params: dict) -> dict:
     )
 
 
-def _handle_get_wallet_info() -> dict:
+def _handle_get_wallet_info(params: dict) -> dict:
     """处理 get_wallet_info 动作 — 查看钱包信息"""
     try:
         pk = key_manager.load_private_key()
@@ -528,11 +487,11 @@ def _handle_get_wallet_info() -> dict:
     try:
         trx_balance = tron_client.get_balance_trx(address)
     except Exception as e:
-        logging.warning(f"查询钱包 TRX 余额失败: {e}")
+        logger.warning(f"查询钱包 TRX 余额失败: {e}")
     try:
         usdt_balance = tron_client.get_usdt_balance(address)
     except Exception as e:
-        logging.warning(f"查询钱包 USDT 余额失败: {e}")
+        logger.warning(f"查询钱包 USDT 余额失败: {e}")
 
     return formatters.format_wallet_info(address, trx_balance, usdt_balance)
 
@@ -577,7 +536,7 @@ def _handle_get_transaction_history(params: dict) -> dict:
                 trx_transfers = trx_data.get("data", [])
                 trx_total = trx_data.get("total", 0)
             except Exception as e:
-                logging.warning(f"获取 TRX/TRC10 转账记录失败: {e}")
+                logger.warning(f"获取 TRX/TRC10 转账记录失败: {e}")
                 trx_transfers = []
                 trx_total = 0
             
@@ -587,7 +546,7 @@ def _handle_get_transaction_history(params: dict) -> dict:
                 trc20_transfers = trc20_data.get("token_transfers", trc20_data.get("data", []))
                 trc20_total = trc20_data.get("total", 0)
             except Exception as e:
-                logging.warning(f"获取 TRC20 转账记录失败: {e}")
+                logger.warning(f"获取 TRC20 转账记录失败: {e}")
                 trc20_transfers = []
                 trc20_total = 0
             
@@ -652,8 +611,29 @@ def _handle_get_transaction_history(params: dict) -> dict:
             )
     
     except Exception as e:
-        logging.error(f"查询交易历史失败: {e}", exc_info=True)
+        logger.error(f"查询交易历史失败: {e}", exc_info=True)
         return _error_response("rpc_error", f"查询失败: {e}")
+
+
+
+# 动作路由表 — 字典映射提升可维护性
+_ACTION_HANDLERS = {
+    "skills": _handle_skills,
+    "get_usdt_balance": _handle_get_usdt_balance,
+    "get_balance": _handle_get_balance,
+    "get_gas_parameters": _handle_get_gas_parameters,
+    "get_transaction_status": _handle_get_transaction_status,
+    "get_network_status": _handle_get_network_status,
+    "get_account_status": _handle_get_account_status,
+    "sign_and_broadcast": _handle_sign_and_broadcast,
+    "check_account_safety": _handle_check_account_safety,
+    "build_tx": _handle_build_tx,
+    "sign_tx": _handle_sign_tx,
+    "broadcast_tx": _handle_broadcast_tx,
+    "transfer": _handle_transfer,
+    "get_wallet_info": _handle_get_wallet_info,
+    "get_transaction_history": _handle_get_transaction_history,
+}
 
 
 def _error_response(error_type: str, message: str) -> dict:
