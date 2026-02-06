@@ -303,6 +303,23 @@ def tron_get_internal_transactions(
     })
 
 
+@mcp.tool()
+def tron_get_account_tokens(address: str) -> dict:
+    """
+    查询地址持有的所有代币列表（TRX + TRC20 + TRC10）。
+    
+    返回完整的代币持仓信息，包括代币名称、缩写、余额等。
+    适用于资产概览、异常代币检测等场景。
+    
+    Args:
+        address: TRON 地址
+    
+    Returns:
+        包含 token_count, tokens 列表和 summary 的结果
+    """
+    return call_router.call("get_account_tokens", {"address": address})
+
+
 def main():
     """启动 MCP Server（支持 stdio 和 SSE 模式）"""
     import sys

@@ -634,6 +634,33 @@ def _handle_get_internal_transactions(params: dict) -> dict:
         return _error_response("rpc_error", f"查询失败: {e}")
 
 
+def _handle_get_account_tokens(params: dict) -> dict:
+    """处理 get_account_tokens 动作 — 查询账户持有的所有代币"""
+    address = params.get("address")
+    
+    # 参数校验
+    if not address:
+        return _error_response("missing_param", "缺少必填参数: address")
+    
+    if not validators.is_valid_address(address):
+        return _error_response("invalid_address", f"无效的地址格式: {address}")
+    
+    try:
+        # 查询代币列表
+        result = tron_client.get_account_tokens(address)
+        
+        # 格式化返回
+        return formatters.format_account_tokens(
+            result["address"],
+            result["tokens"],
+            result["token_count"]
+        )
+    
+    except Exception as e:
+        logger.error(f"查询账户代币失败: {e}", exc_info=True)
+        return _error_response("rpc_error", f"查询失败: {e}")
+
+
 
 # 动作路由表 — 字典映射提升可维护性
 _ACTION_HANDLERS = {
@@ -652,6 +679,7 @@ _ACTION_HANDLERS = {
     "get_wallet_info": _handle_get_wallet_info,
     "get_transaction_history": _handle_get_transaction_history,
     "get_internal_transactions": _handle_get_internal_transactions,
+    "get_account_tokens": _handle_get_account_tokens,
 }
 
 

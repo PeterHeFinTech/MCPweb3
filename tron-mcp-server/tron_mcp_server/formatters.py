@@ -480,3 +480,49 @@ def format_internal_transactions(
         "internal_transactions": formatted_txs,
         "summary": summary,
     }
+
+
+def format_account_tokens(
+    address: str,
+    tokens: list,
+    token_count: int,
+) -> dict:
+    """
+    格式化账户代币列表
+    
+    Args:
+        address: 查询的 TRON 地址
+        tokens: 代币列表（包含 token_name, token_abbr, balance 等字段）
+        token_count: 代币总数
+    
+    Returns:
+        格式化的代币持仓结果
+    """
+    # 构建摘要，列举前几个代币
+    summary_parts = [f"地址 {address} 持有 {token_count} 种代币"]
+    
+    if token_count > 0:
+        # 列举前 5 个代币
+        token_list = []
+        for i, token in enumerate(tokens[:5]):
+            token_abbr = token.get("token_abbr", "")
+            balance = token.get("balance", 0)
+            # 格式化余额，避免科学计数法
+            if balance >= 1:
+                token_list.append(f"{token_abbr} ({balance:,.2f})")
+            else:
+                token_list.append(f"{token_abbr} ({balance:.6f})")
+        
+        if token_count > 5:
+            summary_parts.append(f"：{', '.join(token_list)}...")
+        else:
+            summary_parts.append(f"：{', '.join(token_list)}")
+    
+    summary = "".join(summary_parts) + "。"
+    
+    return {
+        "address": address,
+        "token_count": token_count,
+        "tokens": tokens,
+        "summary": summary,
+    }
