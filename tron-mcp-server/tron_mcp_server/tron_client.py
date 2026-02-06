@@ -438,7 +438,7 @@ def broadcast_transaction(signed_tx: dict) -> dict:
     if not data.get("result", False):
         error_msg = data.get("message", "Unknown error")
         # TronGrid returns hex-encoded error messages
-        if isinstance(error_msg, str) and all(c in '0123456789abcdefABCDEF' for c in error_msg):
+        if isinstance(error_msg, str):
             try:
                 error_msg = bytes.fromhex(error_msg).decode("utf-8", errors="replace")
             except (ValueError, UnicodeDecodeError):

@@ -6,6 +6,7 @@
 
 import os
 import logging
+from typing import Optional
 
 from tronpy.keys import PrivateKey
 
@@ -30,7 +31,7 @@ class KeyManager:
         """检查私钥是否已配置"""
         return self._priv_key is not None
 
-    def get_address(self) -> str | None:
+    def get_address(self) -> Optional[str]:
         """获取 T 开头的 TRON Base58Check 地址"""
         if self._priv_key is None:
             return None
