@@ -178,8 +178,22 @@ class KeyManager:
     def is_configured(self) -> bool:
         return get_configured_address() is not None
 
+    def get_address(self) -> Optional[str]:
+        """获取当前配置的私钥对应的 TRON 地址"""
+        return get_configured_address()
+
     def sign_transaction(self, tx_dict: dict) -> dict:
-        pk = load_private_key()
+        try:
+            pk = load_private_key()
+        except ValueError:
+            raise ValueError("私钥未配置")
+
+        if "txID" not in tx_dict:
+            raise ValueError("交易缺少 txID 字段")
+
+        if "raw_data" not in tx_dict:
+            raise ValueError("交易缺少 raw_data 字段")
+
         tx_id = tx_dict["txID"]
         sig = sign_transaction(tx_id, pk)
         signed = dict(tx_dict)
