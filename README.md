@@ -41,6 +41,7 @@
 └─────────────────────────────────────┘    │   • tron_get_network_status()       │
          AI 读取学习                         │   • tron_check_account_safety()     │
                                            │   • tron_get_wallet_info()          │
+                                           │   • tron_get_transaction_history()  │
                                            │                                     │
                                            │   转账工具 (Transfer Tools):         │
                                            │   • tron_build_tx()                 │
@@ -74,6 +75,7 @@
 - 👤 **接收方状态检测**：自动识别接收方地址是否为未激活状态，提示额外能量消耗
 - ⏰ **交易有效期延长**：交易过期时间延长至 10 分钟，为人工签名提供充足时间窗口
 - 🔒 **安全审计 (Anti-Fraud)**：集成 TRONSCAN 官方黑名单 API，在构建交易前识别恶意地址（诈骗、钓鱼等），保护用户资产安全
+- 📜 **交易历史查询**：支持查询指定地址的 TRX/TRC20 交易历史记录，支持按代币类型筛选和分页
 
 ## 快速开始
 
@@ -178,6 +180,7 @@ python -m tron_mcp_server.server --sse
 | `tron_get_network_status` | 获取网络状态 | 无 |
 | `tron_check_account_safety` | 检查地址安全性（TRONSCAN 黑名单 + 多维风控） | `address` |
 | `tron_get_wallet_info` | 查看本地钱包地址、TRX/USDT 余额（不暴露私钥） | 无 |
+| `tron_get_transaction_history` | 查询地址的交易历史记录（支持按代币类型筛选） | `address`, `limit`, `start`, `token` |
 
 ### 转账工具
 
@@ -211,6 +214,7 @@ python -m tron_mcp_server.server --sse
 │   ├── test_known_issues.py         # 已知问题测试
 │   ├── test_transfer_flow.py        # 转账流程测试
 │   ├── test_tx_builder_new.py       # 交易构建测试
+│   ├── test_transaction_history.py  # 交易历史查询测试
 │   ├── requirements.txt             # 依赖
 │   └── .env.example                 # 环境变量示例
 ├── Changelog.md                     # 更新日志
@@ -425,6 +429,7 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
 └─────────────────────────────────────┘    │   • tron_get_network_status()       │
          AI reads and learns                │   • tron_check_account_safety()     │
                                            │   • tron_get_wallet_info()          │
+                                           │   • tron_get_transaction_history()  │
                                            │                                     │
                                            │   Transfer Tools:                   │
                                            │   • tron_build_tx()                 │
@@ -460,6 +465,7 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
 - 👤 **Recipient Status Check**: Automatically detects if recipient address is unactivated, warns about extra energy costs
 - ⏰ **Extended Expiration**: Transaction expiration extended to 10 minutes, providing sufficient time for manual signing
 - 🔒 **Security Audit (Anti-Fraud)**: Integrates TRONSCAN official blacklist API to identify malicious addresses (Scam, Phishing, etc.) before transaction construction, protecting user assets
+- 📜 **Transaction History**: Query TRX/TRC20 transaction history for any address, with token type filtering and pagination support
 
 <a name="quick-start-en"></a>
 
@@ -568,6 +574,7 @@ Edit `claude_desktop_config.json`:
 | `tron_get_network_status` | Get network status | None |
 | `tron_check_account_safety` | Check address safety (TRONSCAN blacklist + multi-dim risk scan) | `address` |
 | `tron_get_wallet_info` | View local wallet address & TRX/USDT balances (no key exposure) | None |
+| `tron_get_transaction_history` | Query transaction history for an address (supports token type filtering) | `address`, `limit`, `start`, `token` |
 
 ### Transfer Tools
 
@@ -603,6 +610,7 @@ Edit `claude_desktop_config.json`:
 │   ├── test_known_issues.py         # Known issues tests
 │   ├── test_transfer_flow.py        # Transfer flow tests
 │   ├── test_tx_builder_new.py       # Transaction builder tests
+│   ├── test_transaction_history.py  # Transaction history tests
 │   ├── requirements.txt             # Dependencies
 │   └── .env.example                 # Environment variables example
 ├── Changelog.md                     # Update log

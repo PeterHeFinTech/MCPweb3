@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-02-06 (最新) — 新增交易历史查询功能
+
+### ✅ 新增功能：`tron_get_transaction_history` 工具
+
+- **功能描述**: 支持查询指定 TRON 地址的交易历史记录
+- **支持筛选**:
+  - `token=None`: 查询所有类型交易（合并 TRX + TRC20）
+  - `token="TRX"`: 仅查询 TRX 原生转账
+  - `token="USDT"`: 仅查询 USDT (TRC20) 转账
+  - `token=<合约地址>`: 查询指定 TRC20 代币的转账记录
+- **支持分页**: `limit`（最大 50 条）和 `start`（偏移量）参数
+- **返回字段**: `txid`, `from`, `to`, `amount`, `token`, `direction`（IN/OUT/SELF）, `timestamp`
+- **关联代码**:
+  - `server.py`: MCP 工具 `tron_get_transaction_history` 注册
+  - `call_router.py`: `_handle_get_transaction_history()` 路由处理
+  - `tron_client.py`: `get_transfer_history()` / `get_trc20_transfer_history()` API 调用
+  - `formatters.py`: `format_transaction_history()` 输出格式化
+
+### ✅ 新增测试文件
+
+- `test_transaction_history.py`: 交易历史查询功能测试用例覆盖
+
+### ✅ 文档更新
+
+- `README.md`: 在架构图、特性列表、MCP 工具列表和项目结构中新增交易历史查询工具的说明（中英文同步更新）
+
+---
+
 ## 2026-02-06 (深夜) — 错误消息优化 + 结构统一 + 配置文件补全
 
 ### ✅ 改进一：`load_private_key()` 错误消息精简 (key_manager.py)
