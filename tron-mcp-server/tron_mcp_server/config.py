@@ -9,7 +9,7 @@ load_dotenv()
 
 def get_api_url() -> str:
     """获取 TRONSCAN API URL"""
-    return os.getenv("TRONSCAN_API_URL", "")
+    return os.getenv("TRONSCAN_API_URL", "https://apilist.tronscanapi.com")
 
 
 def get_api_key() -> str:

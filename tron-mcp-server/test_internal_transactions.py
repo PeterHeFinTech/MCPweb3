@@ -55,7 +55,7 @@ class TestInternalTransactionsHandler(unittest.TestCase):
         from tron_mcp_server import call_router
         
         result = call_router.call("get_internal_transactions", {
-            "address": "TXyz123456789012345678901234567890ab",
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
             "limit": 0
         })
         self.assertIn("error", result)
@@ -66,7 +66,7 @@ class TestInternalTransactionsHandler(unittest.TestCase):
         from tron_mcp_server import call_router
         
         result = call_router.call("get_internal_transactions", {
-            "address": "TXyz123456789012345678901234567890ab",
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
             "limit": 51
         })
         self.assertIn("error", result)
@@ -99,7 +99,7 @@ class TestInternalTransactionsHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_internal_transactions", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         self.assertNotIn("error", result)
@@ -128,7 +128,7 @@ class TestInternalTransactionsHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_internal_transactions", {
-            "address": "TXyz123456789012345678901234567890ab",
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
             "limit": 5
         })
         
@@ -150,7 +150,7 @@ class TestInternalTransactionsHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_internal_transactions", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         # 验证 API 调用使用了默认参数
@@ -171,7 +171,7 @@ class TestInternalTransactionsHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_internal_transactions", {
-            "address": "TXyz123456789012345678901234567890ab",
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf",
             "limit": 30,
             "start": 10
         })

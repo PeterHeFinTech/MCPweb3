@@ -68,7 +68,7 @@ def _base58_to_hex(address: str) -> str:
     """
     将 Base58Check 地址转换为 Hex 格式 (不含 0x 前缀)
 
-    例: TXyz... → 41a614f803b6fd780986a42c78ec9c7f77e6ded13c
+    例: TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf → 41a614f803b6fd780986a42c78ec9c7f77e6ded13c
     """
     if address.startswith("0x") and len(address) == 44:
         # 已经是 0x41... Hex 格式, 去掉 0x

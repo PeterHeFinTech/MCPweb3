@@ -79,7 +79,7 @@ class TestAccountTokensHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_account_tokens", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         self.assertNotIn("error", result)
@@ -98,7 +98,7 @@ class TestAccountTokensHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_account_tokens", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         tokens = result.get("tokens", [])
@@ -137,7 +137,7 @@ class TestAccountTokensHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_account_tokens", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         tokens = result.get("tokens", [])
@@ -173,7 +173,7 @@ class TestAccountTokensHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_account_tokens", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         # 应该有 1 个 TRX + 3 个 TRC20 = 4 个代币
@@ -191,7 +191,7 @@ class TestAccountTokensHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_account_tokens", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         tokens = result.get("tokens", [])
@@ -212,7 +212,7 @@ class TestAccountTokensHandler(unittest.TestCase):
         }
         
         result = call_router.call("get_account_tokens", {
-            "address": "TXyz123456789012345678901234567890ab"
+            "address": "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
         })
         
         summary = result.get("summary", "")
