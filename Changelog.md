@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-02-07 (v1.0.4) — Docker 容器化支持
+
+### ✅ 新增：Dockerfile 与 .dockerignore
+
+- **`tron-mcp-server/Dockerfile`**: 基于 `python:3.12-slim`，支持 stdio 和 SSE 两种运行模式
+- **`tron-mcp-server/.dockerignore`**: 排除测试文件、缓存、虚拟环境等非运行时文件，减小镜像体积
+- **README 更新**: 中英文文档新增 Docker 部署章节（构建镜像 / stdio 运行 / SSE 运行）
+
+---
+
 ## 2026-02-07 (v1.0.3) — 网络切换支持 + 安全检查链修复 + 测试覆盖大幅提升
 
 ### ✅ 新增功能：网络切换与配置系统重构

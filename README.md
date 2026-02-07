@@ -175,6 +175,21 @@ python -m tron_mcp_server.server --sse
 }
 ```
 
+### 5. Docker 部署（可选）
+
+```bash
+cd tron-mcp-server
+
+# 构建镜像
+docker build -t tron-mcp-server .
+
+# stdio 模式运行
+docker run -i --env-file .env tron-mcp-server
+
+# SSE 模式运行（对外暴露端口）
+docker run --env-file .env -p 8765:8765 tron-mcp-server --sse
+```
+
 ## MCP 工具列表
 
 ### 查询工具
@@ -221,6 +236,8 @@ python -m tron_mcp_server.server --sse
 │   │   ├── validators.py            # 参数校验
 │   │   ├── formatters.py            # 输出格式化
 │   │   └── config.py                # 配置管理（网络切换/API 预设）
+│   ├── Dockerfile                   # Docker 容器化配置
+│   ├── .dockerignore                # Docker 构建排除规则
 │   ├── test_known_issues.py         # 已知问题测试
 │   ├── test_transfer_flow.py        # 转账流程测试
 │   ├── test_tx_builder_new.py       # 交易构建测试
@@ -582,6 +599,21 @@ Edit `claude_desktop_config.json`:
 }
 ```
 
+### 5. Docker Deployment (Optional)
+
+```bash
+cd tron-mcp-server
+
+# Build image
+docker build -t tron-mcp-server .
+
+# Run in stdio mode
+docker run -i --env-file .env tron-mcp-server
+
+# Run in SSE mode (expose port)
+docker run --env-file .env -p 8765:8765 tron-mcp-server --sse
+```
+
 <a name="mcp-tools-en"></a>
 
 ## MCP Tools
@@ -632,6 +664,8 @@ Edit `claude_desktop_config.json`:
 │   │   ├── validators.py            # Parameter validation
 │   │   ├── formatters.py            # Output formatting
 │   │   └── config.py                # Configuration management (network switching/API presets)
+│   ├── Dockerfile                   # Docker containerization config
+│   ├── .dockerignore                # Docker build exclusion rules
 │   ├── test_known_issues.py         # Known issues tests
 │   ├── test_transfer_flow.py        # Transfer flow tests
 │   ├── test_tx_builder_new.py       # Transaction builder tests
