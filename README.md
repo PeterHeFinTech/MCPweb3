@@ -26,7 +26,9 @@
 
 ## 架构
 
-本项目采用 **Agent Skill + MCP Server 分离架构**：
+本项目采用 **Agent Skill + MCP Server 分离架构**：<img width="5624" height="3472" alt="diagram" src="https://github.com/user-attachments/assets/f0fbf1a7-7f35-4b2f-a250-46883bfc7d42" />
+
+
 
 ```
 ┌─────────────────────────────────────┐    ┌─────────────────────────────────────┐
