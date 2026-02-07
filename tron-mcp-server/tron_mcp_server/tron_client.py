@@ -9,7 +9,7 @@ import base58
 logger = logging.getLogger(__name__)
 
 # USDT TRC20 合约地址
-# Default to Mainnet if not set
+# Default to Nile Testnet if not set
 USDT_CONTRACT_BASE58 = os.getenv("USDT_CONTRACT_ADDRESS", "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf")
 USDT_CONTRACT_HEX = os.getenv("USDT_CONTRACT_ADDRESS_HEX", "0x41d2b56458ed849f993432263dbc8e1da12013856a")
 
