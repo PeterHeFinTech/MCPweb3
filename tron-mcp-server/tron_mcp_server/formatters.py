@@ -63,8 +63,8 @@ def format_network_status(block_number: int) -> dict:
     """格式化网络状态"""
     return {
         "latest_block": block_number,
-        "chain": "TRON Mainnet",
-        "summary": f"TRON 主网当前区块高度为 {block_number:,}。",
+        "chain": "TRON Nile Testnet",
+        "summary": f"TRON Nile 测试网当前区块高度为 {block_number:,}。",
     }
 
 

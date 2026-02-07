@@ -203,8 +203,8 @@ class TestGetNetworkStatus(unittest.TestCase):
         """正常查询应返回网络状态"""
         mock_get.return_value = {
             "latest_block": 12345678,
-            "chain": "TRON Mainnet",
-            "summary": "TRON 主网当前区块高度为 12,345,678。"
+            "chain": "TRON Nile Testnet",
+            "summary": "TRON Nile 测试网当前区块高度为 12,345,678。"
         }
         result = call_router.call("get_network_status", {})
         self.assertNotIn("error", result)

@@ -566,7 +566,8 @@ description: 与 TRON 区块链交互的完整技能集。提供 14 个 MCP 标�
 
 ## 技术细节
 
-- **USDT 合约**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 位小数)
+- **USDT 合约**: `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (TRC20, 6 位小数, Nile 测试网)
+- **网络**: TRON Nile 测试网
 - **精度**: USDT 和 TRX 均使用 6 位小数
 - **API**: 通过 TRONSCAN REST API 与 TRON 网络通信
 - **接口来源**: account, transaction-info, chain/parameters, block

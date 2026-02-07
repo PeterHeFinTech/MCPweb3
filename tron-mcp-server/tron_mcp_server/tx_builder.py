@@ -18,8 +18,8 @@ SUN_PER_TRX = 1_000_000
 USDT_DECIMALS = 6
 
 # USDT TRC20 合约地址
-# Default to Mainnet if not set
-USDT_CONTRACT = os.getenv("USDT_CONTRACT_ADDRESS", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
+# Default to Nile Testnet
+USDT_CONTRACT = os.getenv("USDT_CONTRACT_ADDRESS", "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf")
 
 # 交易过期时间（毫秒）
 TX_EXPIRATION_MS = 10 * 60 * 1000

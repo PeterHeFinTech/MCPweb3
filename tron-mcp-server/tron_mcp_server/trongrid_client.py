@@ -21,12 +21,12 @@ logger = logging.getLogger(__name__)
 
 # ============ 配置 ============
 
-DEFAULT_TRONGRID_URL = "https://api.trongrid.io"
+DEFAULT_TRONGRID_URL = "https://nile.trongrid.io"
 TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "15.0"))
 
 # USDT TRC20 合约地址
 USDT_CONTRACT_BASE58 = os.getenv(
-    "USDT_CONTRACT_ADDRESS", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+    "USDT_CONTRACT_ADDRESS", "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf"
 )
 
 # TRC20 转账的 fee_limit (SUN), 默认 100 TRX

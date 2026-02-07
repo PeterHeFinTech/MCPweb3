@@ -9,12 +9,12 @@ import base58
 logger = logging.getLogger(__name__)
 
 # USDT TRC20 合约地址
-# Default to Mainnet if not set
-USDT_CONTRACT_BASE58 = os.getenv("USDT_CONTRACT_ADDRESS", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
-USDT_CONTRACT_HEX = os.getenv("USDT_CONTRACT_ADDRESS_HEX", "0x41a614f803b6fd780986a42c78ec9c7f77e6ded13c")
+# Default to Nile Testnet if not set
+USDT_CONTRACT_BASE58 = os.getenv("USDT_CONTRACT_ADDRESS", "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf")
+USDT_CONTRACT_HEX = os.getenv("USDT_CONTRACT_ADDRESS_HEX", "0x41d2b56458ed849f993432263dbc8e1da12013856a")
 
 # 默认 TRONSCAN API URL
-DEFAULT_API_URL = "https://apilist.tronscan.org/api"
+DEFAULT_API_URL = "https://nile.tronscan.org/api"
 
 # 超时设置
 TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "10.0"))
@@ -289,7 +289,7 @@ def check_account_risk(address: str) -> dict:
     
     # --- Layer 1: Account V2 API (查标签 + 投诉) ---
     try:
-        account_url = "https://apilist.tronscanapi.com/api/accountv2"
+        account_url = "https://nile.tronscan.org/api/accountv2"
         response = httpx.get(account_url, params={"address": normalized_addr}, headers=headers, timeout=TIMEOUT)
         data_v2 = response.json()
         v2_success = True
@@ -331,7 +331,7 @@ def check_account_risk(address: str) -> dict:
     
     # --- Layer 2: Security Service API (查黑产行为) ---
     try:
-        security_url = "https://apilist.tronscanapi.com/api/security/account/data"
+        security_url = "https://nile.tronscan.org/api/security/account/data"
         response = httpx.get(security_url, params={"address": normalized_addr}, headers=headers, timeout=TIMEOUT)
         data_sec = response.json()
         sec_success = True
@@ -429,7 +429,7 @@ def broadcast_transaction(signed_tx: dict) -> dict:
     if "signature" not in signed_tx or not signed_tx["signature"]:
         raise ValueError("交易未签名：缺少 signature 字段")
 
-    url = "https://api.trongrid.io/wallet/broadcasttransaction"
+    url = "https://nile.trongrid.io/wallet/broadcasttransaction"
     headers = _get_headers()
     headers["Content-Type"] = "application/json"
 

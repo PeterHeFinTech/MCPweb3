@@ -316,7 +316,7 @@ class TestGetTrongridUrl(unittest.TestCase):
             # Remove any existing env var
             os.environ.pop("TRONGRID_API_URL", None)
             result = trongrid_client._get_trongrid_url()
-            self.assertEqual(result, "https://api.trongrid.io")
+            self.assertEqual(result, "https://nile.trongrid.io")
 
     def test_custom_url(self):
         """自定义 URL"""

@@ -150,7 +150,7 @@ class TestFormatNetworkStatus(unittest.TestCase):
         """测试网络状态格式化"""
         result = formatters.format_network_status(12345678)
         self.assertEqual(result["latest_block"], 12345678)
-        self.assertEqual(result["chain"], "TRON Mainnet")
+        self.assertEqual(result["chain"], "TRON Nile Testnet")
         self.assertIn("summary", result)
         self.assertIn("12,345,678", result["summary"])
 

@@ -223,9 +223,10 @@ python -m tron_mcp_server.server --sse
 
 ## 技术细节
 
-- **USDT 合约**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 位小数)
-- **查询 API**: TRONSCAN REST（余额、交易状态、Gas 参数、安全检查）
-- **交易 API**: TronGrid（构建真实交易、广播签名交易）
+- **USDT 合约**: `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (TRC20, 6 位小数, Nile 测试网)
+- **网络**: TRON Nile 测试网
+- **查询 API**: TRONSCAN REST（余额、交易状态、Gas 参数、安全检查）`https://nile.tronscan.org/api`
+- **交易 API**: TronGrid（构建真实交易、广播签名交易）`https://nile.trongrid.io`
 - **签名算法**: ECDSA secp256k1 + RFC 6979 确定性签名
 - **地址派生**: 私钥 → secp256k1 公钥 → Keccak256 → Base58Check
 - **传输协议**: stdio（默认）/ SSE（`--sse` 启动）
@@ -321,8 +322,8 @@ python -m pytest test_known_issues.py -v
 
 ## 常见问题 FAQ
 
-### Q1: 如何切换到测试网？
-A: 修改 `.env` 文件中的 `TRONSCAN_API_URL` 为测试网 API 地址（如 Shasta 测试网）。
+### Q1: 如何切换到主网？
+A: 修改 `.env` 文件中的 `TRONSCAN_API_URL` 为主网 API 地址 `https://apilist.tronscan.org/api`，`TRONGRID_API_URL` 为 `https://api.trongrid.io`，并将 `USDT_CONTRACT_ADDRESS` 设为主网合约地址 `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`。
 
 ### Q2: 端口 8765 被占用怎么办？
 A: 设置环境变量 `MCP_PORT=8766`（或其他可用端口）后重新启动服务。
@@ -628,9 +629,10 @@ Edit `claude_desktop_config.json`:
 
 ## Technical Details
 
-- **USDT Contract**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 decimals)
-- **Query API**: TRONSCAN REST (balances, tx status, gas params, security checks)
-- **Transaction API**: TronGrid (build real transactions, broadcast signed transactions)
+- **USDT Contract**: `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (TRC20, 6 decimals, Nile Testnet)
+- **Network**: TRON Nile Testnet
+- **Query API**: TRONSCAN REST (balances, tx status, gas params, security checks) `https://nile.tronscan.org/api`
+- **Transaction API**: TronGrid (build real transactions, broadcast signed transactions) `https://nile.trongrid.io`
 - **Signing Algorithm**: ECDSA secp256k1 + RFC 6979 deterministic signing
 - **Address Derivation**: Private key → secp256k1 pubkey → Keccak256 → Base58Check
 - **Transport Protocol**: stdio (default) / SSE (`--sse` startup)

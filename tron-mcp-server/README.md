@@ -212,7 +212,7 @@ python -m pytest test_known_issues.py test_transfer_flow.py test_tx_builder_new.
 
 ## 技术细节
 
-- **USDT 合约**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 位小数)
+- **USDT 合约**: `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (TRC20, 6 位小数, Nile 测试网)
 - **查询 API**: TRONSCAN REST（余额、交易状态、Gas 参数、安全检查）
 - **交易 API**: TronGrid（构建真实交易、广播签名交易）
 - **签名算法**: ECDSA secp256k1 + RFC 6979 确定性签名
