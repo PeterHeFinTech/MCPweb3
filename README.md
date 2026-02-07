@@ -44,6 +44,8 @@
          AI 读取学习                         │   • tron_check_account_safety()     │
                                            │   • tron_get_wallet_info()          │
                                            │   • tron_get_transaction_history()  │
+                                           │   • tron_get_internal_transactions()│
+                                           │   • tron_get_account_tokens()       │
                                            │                                     │
                                            │   转账工具 (Transfer Tools):         │
                                            │   • tron_build_tx()                 │
@@ -78,6 +80,9 @@
 - ⏰ **交易有效期延长**：交易过期时间延长至 10 分钟，为人工签名提供充足时间窗口
 - 🔒 **安全审计 (Anti-Fraud)**：集成 TRONSCAN 官方黑名单 API，在构建交易前识别恶意地址（诈骗、钓鱼等），保护用户资产安全
 - 📜 **交易历史查询**：支持查询指定地址的 TRX/TRC20 交易历史记录，支持按代币类型筛选和分页
+- 🔗 **内部交易查询**：查询合约内部调用产生的转账记录
+- 🪙 **代币资产概览**：查询地址持有的所有代币列表（TRX + TRC20 + TRC10）
+- 🌐 **网络切换**：通过 `TRON_NETWORK` 环境变量一键切换主网/Nile 测试网，API 地址和合约地址自动适配
 
 ## 快速开始
 
@@ -109,9 +114,10 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 # 编辑 .env 文件，按需配置：
-# - TRON_PRIVATE_KEY: 签名/广播交易时必需
+# - TRON_NETWORK: 选择网络（mainnet 或 nile），默认 mainnet
+# - TRONGRID_API_KEY: TronGrid API 密钥（推荐配置）
 # - TRONSCAN_API_KEY: 提高 API 限额（推荐）
-# - Gas 估算参数: 可根据网络状况微调
+# - TRON_PRIVATE_KEY: 签名/广播交易时必需
 ```
 
 ### 3. 运行 MCP Server
@@ -183,13 +189,15 @@ python -m tron_mcp_server.server --sse
 | `tron_check_account_safety` | 检查地址安全性（TRONSCAN 黑名单 + 多维风控） | `address` |
 | `tron_get_wallet_info` | 查看本地钱包地址、TRX/USDT 余额（不暴露私钥） | 无 |
 | `tron_get_transaction_history` | 查询地址的交易历史记录（支持按代币类型筛选） | `address`, `limit`, `start`, `token` |
+| `tron_get_internal_transactions` | 查询地址的内部交易（合约内部调用产生的转账） | `address`, `limit`, `start` |
+| `tron_get_account_tokens` | 查询地址持有的所有代币列表（TRX + TRC20 + TRC10） | `address` |
 
 ### 转账工具
 
 | 工具名 | 描述 | 参数 |
 |--------|------|------|
 | `tron_build_tx` | 构建未签名交易（含安全审计 + Gas 拦截） | `from_address`, `to_address`, `amount`, `token`, `force_execution` |
-| `tron_sign_tx` | 构建并签名交易，不广播（需 `TRON_PRIVATE_KEY`） | `from_address`, `to_address`, `amount`, `token` |
+| `tron_sign_tx` | 对未签名交易进行签名，不广播（需 `TRON_PRIVATE_KEY`） | `unsigned_tx_json` |
 | `tron_broadcast_tx` | 广播已签名交易到 TRON 网络 | `signed_tx_json` |
 | `tron_transfer` | 🚀 一键转账闭环：安全检查 → 构建 → 签名 → 广播 | `to_address`, `amount`, `token`, `force_execution` |
 
@@ -212,11 +220,15 @@ python -m tron_mcp_server.server --sse
 │   │   ├── key_manager.py           # 本地私钥管理（签名/地址派生）
 │   │   ├── validators.py            # 参数校验
 │   │   ├── formatters.py            # 输出格式化
-│   │   └── config.py                # 配置管理
+│   │   └── config.py                # 配置管理（网络切换/API 预设）
 │   ├── test_known_issues.py         # 已知问题测试
 │   ├── test_transfer_flow.py        # 转账流程测试
 │   ├── test_tx_builder_new.py       # 交易构建测试
 │   ├── test_transaction_history.py  # 交易历史查询测试
+│   ├── test_tron_client.py          # TRON 客户端集成测试
+│   ├── test_trongrid_client.py      # TronGrid 客户端集成测试
+│   ├── test_call_router_*.py        # 路由器集成测试
+│   ├── test_config_and_skills.py    # 配置与技能模块测试
 │   ├── requirements.txt             # 依赖
 │   └── .env.example                 # 环境变量示例
 ├── Changelog.md                     # 更新日志
@@ -225,7 +237,7 @@ python -m tron_mcp_server.server --sse
 
 ## 技术细节
 
-- **USDT 合约**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 位小数)
+- **USDT 合约**: 主网 `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` / Nile 测试网 `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (TRC20, 6 位小数，通过 `TRON_NETWORK` 自动切换)
 - **查询 API**: TRONSCAN REST（余额、交易状态、Gas 参数、安全检查）
 - **交易 API**: TronGrid（构建真实交易、广播签名交易）
 - **签名算法**: ECDSA secp256k1 + RFC 6979 确定性签名
@@ -276,23 +288,19 @@ python -m tron_mcp_server.server --sse
 | **validators.py** | 非 34 字符的 T 开头地址不再通过宽松校验，直接返回 False |
 | **tron_client.py** | `get_balance_trx()` 查询新地址不再抛异常，正确返回 0 |
 
-### 🔴 严重：API 失败时的静默失效 (Silent Failure)
+### ✅ 已修复：API 失败时的静默失效 (Silent Failure)
 
 | 项目 | 说明 |
 |------|------|
-| **位置** | `tron_client.py` → `check_account_risk()` |
-| **问题** | 当两个安全 API（accountv2 + security）**同时失败**（如 429 频率限制、网络断开），代码通过 `except Exception` 默认返回 `is_risky=False, risk_type="Safe"` |
-| **风险** | 金融安全工具中"静默失效"是最危险的缺陷。评委测试时如果 API 恰好超频，所有地址都会显示"安全" |
-| **改善方向** | 1. 双 API 失败时 `risk_type` 设为 `"Unknown"`<br>2. 添加降级提示 `"⚠️ 安全检查服务暂时不可用，请谨慎操作"`<br>3. `check_recipient_security()` 中 API 失败时考虑不默认放行 |
+| **位置** | `tron_client.py` → `check_account_risk()`, `tx_builder.py` → `check_recipient_security()` |
+| **修复** | 双 API 失败时 `risk_type` 设为 `"Unknown"`，单 API 失败时设为 `"Partially Verified"`。`check_recipient_security()` 异常时返回 `is_risky=None` 而非 `False`，不再做虚假的安全断言。`formatters.py` 中增加了对 Unknown 和 Partially Verified 的显式格式化分支 |
 
-### 🟡 中等：手续费估算未接入免费带宽抵扣 (Free Bandwidth Gap)
+### ✅ 已修复：手续费估算未接入免费带宽抵扣 (Free Bandwidth Gap)
 
 | 项目 | 说明 |
 |------|------|
 | **位置** | `tx_builder.py` → `check_sender_balance()` |
-| **问题** | USDT 手续费固定按 `65000 Energy × 420 SUN = 27.3 TRX` 估算，未接入 TRON 每地址每天 600 免费带宽的动态抵扣 |
-| **影响** | USDT 转账消耗 ~350 bytes 带宽，免费带宽可节省 ~0.35 TRX。余额在 26.95~27.30 TRX 之间的用户可能被误报"余额不足" |
-| **改善方向** | 查询用户剩余免费带宽，动态调整 Gas 估算 |
+| **修复** | 能量费与带宽费分开计算，免费带宽（600 点/天）动态抵扣 USDT 转账的带宽消耗（~350 bytes），所有参数可通过环境变量覆盖 |
 
 ### 🟡 中等：`force_execution` 的 LLM 提示词风险
 
@@ -324,7 +332,7 @@ python -m pytest test_known_issues.py -v
 ## 常见问题 FAQ
 
 ### Q1: 如何切换到测试网？
-A: 修改 `.env` 文件中的 `TRONSCAN_API_URL` 为测试网 API 地址（如 Shasta 测试网）。
+A: 在 `.env` 文件中设置 `TRON_NETWORK=nile`，API 地址和 USDT 合约地址会自动切换到 Nile 测试网。也可以通过单独设置 `TRONGRID_API_URL` 或 `TRONSCAN_API_URL` 覆盖默认值。
 
 ### Q2: 端口 8765 被占用怎么办？
 A: 设置环境变量 `MCP_PORT=8766`（或其他可用端口）后重新启动服务。
@@ -439,6 +447,8 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
          AI reads and learns                │   • tron_check_account_safety()     │
                                            │   • tron_get_wallet_info()          │
                                            │   • tron_get_transaction_history()  │
+                                           │   • tron_get_internal_transactions()│
+                                           │   • tron_get_account_tokens()       │
                                            │                                     │
                                            │   Transfer Tools:                   │
                                            │   • tron_build_tx()                 │
@@ -475,6 +485,9 @@ This project uses an **Agent Skill + MCP Server separation architecture**:
 - ⏰ **Extended Expiration**: Transaction expiration extended to 10 minutes, providing sufficient time for manual signing
 - 🔒 **Security Audit (Anti-Fraud)**: Integrates TRONSCAN official blacklist API to identify malicious addresses (Scam, Phishing, etc.) before transaction construction, protecting user assets
 - 📜 **Transaction History**: Query TRX/TRC20 transaction history for any address, with token type filtering and pagination support
+- 🔗 **Internal Transactions**: Query internal transfers triggered by contract calls
+- 🪙 **Token Portfolio**: Query all tokens held by an address (TRX + TRC20 + TRC10)
+- 🌐 **Network Switching**: Switch between mainnet and Nile testnet with one env var (`TRON_NETWORK`), API URLs and contract addresses auto-adjust
 
 <a name="quick-start-en"></a>
 
@@ -508,9 +521,10 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 # Edit .env file to configure as needed:
-# - TRON_PRIVATE_KEY: Required for signing/broadcasting transactions
+# - TRON_NETWORK: Select network (mainnet or nile), defaults to mainnet
+# - TRONGRID_API_KEY: TronGrid API key (recommended)
 # - TRONSCAN_API_KEY: Increase API rate limits (recommended)
-# - Gas estimation parameters: Fine-tune based on network conditions
+# - TRON_PRIVATE_KEY: Required for signing/broadcasting transactions
 ```
 
 ### 3. Run MCP Server
@@ -584,13 +598,15 @@ Edit `claude_desktop_config.json`:
 | `tron_check_account_safety` | Check address safety (TRONSCAN blacklist + multi-dim risk scan) | `address` |
 | `tron_get_wallet_info` | View local wallet address & TRX/USDT balances (no key exposure) | None |
 | `tron_get_transaction_history` | Query transaction history for an address (supports token type filtering) | `address`, `limit`, `start`, `token` |
+| `tron_get_internal_transactions` | Query internal transactions of an address (transfers from contract calls) | `address`, `limit`, `start` |
+| `tron_get_account_tokens` | Query all tokens held by an address (TRX + TRC20 + TRC10) | `address` |
 
 ### Transfer Tools
 
 | Tool Name | Description | Parameters |
 |-----------|-------------|------------|
 | `tron_build_tx` | Build unsigned transaction (with security audit + gas guard) | `from_address`, `to_address`, `amount`, `token`, `force_execution` |
-| `tron_sign_tx` | Build & sign transaction without broadcasting (requires `TRON_PRIVATE_KEY`) | `from_address`, `to_address`, `amount`, `token` |
+| `tron_sign_tx` | Sign an unsigned transaction without broadcasting (requires `TRON_PRIVATE_KEY`) | `unsigned_tx_json` |
 | `tron_broadcast_tx` | Broadcast signed transaction to TRON network | `signed_tx_json` |
 | `tron_transfer` | 🚀 One-click transfer: safety check → build → sign → broadcast | `to_address`, `amount`, `token`, `force_execution` |
 
@@ -615,11 +631,15 @@ Edit `claude_desktop_config.json`:
 │   │   ├── key_manager.py           # Local private key management (sign/derive)
 │   │   ├── validators.py            # Parameter validation
 │   │   ├── formatters.py            # Output formatting
-│   │   └── config.py                # Configuration management
+│   │   └── config.py                # Configuration management (network switching/API presets)
 │   ├── test_known_issues.py         # Known issues tests
 │   ├── test_transfer_flow.py        # Transfer flow tests
 │   ├── test_tx_builder_new.py       # Transaction builder tests
 │   ├── test_transaction_history.py  # Transaction history tests
+│   ├── test_tron_client.py          # TRON client integration tests
+│   ├── test_trongrid_client.py      # TronGrid client integration tests
+│   ├── test_call_router_*.py        # Call router integration tests
+│   ├── test_config_and_skills.py    # Config and skills module tests
 │   ├── requirements.txt             # Dependencies
 │   └── .env.example                 # Environment variables example
 ├── Changelog.md                     # Update log
@@ -630,7 +650,7 @@ Edit `claude_desktop_config.json`:
 
 ## Technical Details
 
-- **USDT Contract**: `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` (TRC20, 6 decimals)
+- **USDT Contract**: Mainnet `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` / Nile testnet `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf` (TRC20, 6 decimals, auto-switches via `TRON_NETWORK`)
 - **Query API**: TRONSCAN REST (balances, tx status, gas params, security checks)
 - **Transaction API**: TronGrid (build real transactions, broadcast signed transactions)
 - **Signing Algorithm**: ECDSA secp256k1 + RFC 6979 deterministic signing
@@ -681,23 +701,19 @@ This service integrates TRONSCAN official security APIs to automatically detect 
 | **validators.py** | T-prefixed addresses with non-34 characters no longer pass lenient validation, directly return False |
 | **tron_client.py** | `get_balance_trx()` querying new addresses no longer throws exception, correctly returns 0 |
 
-### 🔴 Critical: Silent Failure on API Errors
+### ✅ Fixed: Silent Failure on API Errors
 
 | Item | Description |
 |------|-------------|
-| **Location** | `tron_client.py` → `check_account_risk()` |
-| **Issue** | When both security APIs (accountv2 + security) **fail simultaneously** (e.g., 429 rate limit, network disconnection), code defaults to `is_risky=False, risk_type="Safe"` via `except Exception` |
-| **Risk** | "Silent failure" is the most dangerous defect in financial security tools. If APIs happen to exceed rate limits during testing, all addresses would show as "safe" |
-| **Improvement Direction** | 1. Set `risk_type` to `"Unknown"` when both APIs fail<br>2. Add fallback warning `"⚠️ Security check service temporarily unavailable, please proceed with caution"`<br>3. Consider not defaulting to allow pass in `check_recipient_security()` when API fails |
+| **Location** | `tron_client.py` → `check_account_risk()`, `tx_builder.py` → `check_recipient_security()` |
+| **Fix** | When both APIs fail, `risk_type` is set to `"Unknown"`; single API failure returns `"Partially Verified"`. `check_recipient_security()` now returns `is_risky=None` on exception instead of `False`, eliminating false safety claims. `formatters.py` now has explicit branches for Unknown and Partially Verified |
 
-### 🟡 Medium: Fee Estimation Missing Free Bandwidth Deduction
+### ✅ Fixed: Fee Estimation Missing Free Bandwidth Deduction
 
 | Item | Description |
 |------|-------------|
 | **Location** | `tx_builder.py` → `check_sender_balance()` |
-| **Issue** | USDT fees are fixed at `65000 Energy × 420 SUN = 27.3 TRX` estimation, without integrating TRON's daily 600 free bandwidth per address for dynamic deduction |
-| **Impact** | USDT transfers consume ~350 bytes bandwidth, free bandwidth can save ~0.35 TRX. Users with balance between 26.95~27.30 TRX may be falsely reported as "insufficient balance" |
-| **Improvement Direction** | Query user's remaining free bandwidth, dynamically adjust Gas estimation |
+| **Fix** | Energy fees and bandwidth fees are now calculated separately. Free bandwidth (600 points/day) dynamically offsets USDT transfer bandwidth consumption (~350 bytes). All parameters are configurable via environment variables |
 
 ### 🟡 Medium: `force_execution` LLM Prompt Risk
 
@@ -731,7 +747,7 @@ python -m pytest test_known_issues.py -v
 ## FAQ
 
 ### Q1: How to switch to testnet?
-A: Modify `TRONSCAN_API_URL` in `.env` file to testnet API address (e.g., Shasta testnet).
+A: Set `TRON_NETWORK=nile` in your `.env` file. API URLs and the USDT contract address will auto-switch to the Nile testnet. You can also override individual URLs with `TRONGRID_API_URL` or `TRONSCAN_API_URL`.
 
 ### Q2: Port 8765 is occupied?
 A: Set environment variable `MCP_PORT=8766` (or another available port) and restart the service.

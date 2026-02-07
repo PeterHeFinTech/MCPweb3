@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-02-07 (v1.0.3) — 网络切换支持 + 安全检查链修复 + 测试覆盖大幅提升
+
+### ✅ 新增功能：网络切换与配置系统重构
+
+#### PR #49: 新增 `TRON_NETWORK` 环境变量，一键切换主网/测试网
+
+- **功能**: 通过 `TRON_NETWORK=mainnet` 或 `TRON_NETWORK=nile` 自动切换所有 API 端点和 USDT 合约地址
+- **变更文件**: `config.py`（新增 `_preset()` 网络预设系统）、`tron_client.py`、`trongrid_client.py`、`tx_builder.py`（替换硬编码默认值为 `config.*` 调用）
+- **`.env.example` 重写**: 清晰分区（网络选择、API 密钥、私钥、高级配置），新增 `TRONGRID_API_KEY` 配置项及注册链接
+- **优先级规则**: 用户显式设置的环境变量始终优先于网络预设默认值
+
+#### PR #47: 默认网络从主网切换到 Nile 测试网
+
+- **API 端点**: TronGrid `api.trongrid.io` → `nile.trongrid.io`，TRONSCAN 多个端点统一切换到 `nile.tronscan.org`
+- **合约地址**: USDT Base58 `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t` → `TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf`
+- **文档更新**: README、SKILL.md、.env.example 同步更新，FAQ 中"如何切换到测试网"改为"如何切换到主网"
+
+### 🔴 关键修复
+
+#### PR #43: 修复安全检查链的静默失效问题
+
+- **`tx_builder.py`**: `check_recipient_security()` 异常时返回 `is_risky=None` 而非 `is_risky=False`，不再做虚假的安全断言
+- **`formatters.py`**: 新增 `risk_type="Unknown"` 和 `"Partially Verified"` 的显式格式化分支：
+  - `"Unknown"` → "⚠️ 无法验证: 安全检查服务不可用，请谨慎操作"
+  - `"Partially Verified"` → "⚠️ 部分验证: 仅部分安全检查通过"
+- **行为变更**: `build_unsigned_tx` 在 `is_risky=None` 时不触发熔断，但附带降级警告
+
+### ✅ 文档与测试
+
+#### PR #45: 重写 SKILL.md，覆盖全部 14 个 MCP 工具
+
+- SKILL.md 从 6 个工具更新到 14 个工具，按分类（数据查询 / 交易操作）组织
+- 工具名统一使用 `tron_*` 格式（替代旧版 `call(action, params)` 风格）
+- 新增完整参数说明、返回值描述、工作流程示例、错误处理和安全注意事项
+
+#### PR #44: 新增 240+ 集成测试，总测试数从 262 提升到 502
+
+- **`test_tron_client.py`**: 73 个测试（API wrapper 函数 + mocked HTTP）
+- **`test_trongrid_client.py`**: 33 个测试（交易构建 + mocked HTTP）
+- **`test_key_manager.py`**: 31 个测试（KeyManager 类、边界用例）
+- **`test_tx_builder_integration.py`**: 42 个测试（安全检查、build_unsigned_tx 端到端）
+- **`test_call_router_actions.py` / `test_call_router_queries.py`**: 52 个测试（sign_tx、broadcast_tx、transfer、wallet_info 等路由处理器）
+- **`test_config_and_skills.py`**: 9 个测试（配置、日志、技能模块）
+
+### 近期合并的 PR 汇总
+
+| PR | 标题 | 合并日期 |
+|:---:|:---|:---|
+| #49 | 新增 TRON_NETWORK 切换和 .env.example 重写 | 2026-02-07 |
+| #47 | 默认网络从主网切换到 Nile 测试网 | 2026-02-07 |
+| #45 | 重写 SKILL.md 覆盖全部 14 个工具 | 2026-02-06 |
+| #44 | 新增 240+ 集成测试 | 2026-02-06 |
+| #43 | 修复安全检查链静默失效问题 | 2026-02-06 |
+
+---
+
 ## 2026-02-06 (v1.0.2) — 上线前关键修复 + 工具精简与扩展
 
 ### 🔴 关键修复
