@@ -252,3 +252,33 @@ def broadcast_transaction(signed_tx: dict) -> dict:
         "result": True,
         "txid": signed_tx["txID"],
     }
+
+
+# ============ 资源查询 ============
+
+def get_account_resource(address: str) -> dict:
+    """
+    查询账户资源（Energy + Bandwidth）
+    
+    通过 TronGrid 全节点 API /wallet/getaccountresource 获取真实链上数据。
+    
+    Args:
+        address: TRON 地址（Base58 或 Hex 格式）
+    
+    Returns:
+        TronGrid 返回的原始资源数据字典
+    
+    Raises:
+        ValueError: 地址无效或 API 返回错误
+    """
+    data = {
+        "address": _base58_to_hex(address),
+        "visible": False,
+    }
+    result = _post("wallet/getaccountresource", data)
+    
+    # 检查错误
+    if "Error" in result:
+        raise ValueError(f"TronGrid 查询账户资源失败: {result.get('Error')}")
+    
+    return result

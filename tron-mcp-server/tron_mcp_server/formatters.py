@@ -662,13 +662,9 @@ def format_account_energy(result: dict) -> dict:
     energy_limit = result["energy_limit"]
     energy_used = result["energy_used"]
     energy_remaining = result["energy_remaining"]
-    frozen_trx = result.get("frozen_for_energy_trx", 0)
-    delegated_trx = result.get("delegated_for_energy_trx", 0)
     
-    # 计算使用率
     usage_pct = (energy_used / energy_limit * 100) if energy_limit > 0 else 0
     
-    # 构建摘要
     lines = [f"⚡ 地址 {address} 能量 (Energy) 资源情况："]
     
     if energy_limit == 0 and energy_used == 0:
@@ -679,12 +675,7 @@ def format_account_energy(result: dict) -> dict:
         lines.append(f"  已使用: {energy_used:,} ({usage_pct:.1f}%)")
         lines.append(f"  剩余: {energy_remaining:,}")
     
-    if frozen_trx > 0:
-        lines.append(f"  自质押: {frozen_trx:,.2f} TRX")
-    if delegated_trx > 0:
-        lines.append(f"  委托获得: {delegated_trx:,.2f} TRX")
-    
-    # 给出 USDT 转账参考
+    # USDT 转账参考
     usdt_transfers = energy_remaining // USDT_TRANSFER_ENERGY_COST if energy_remaining > 0 else 0
     if usdt_transfers > 0:
         lines.append(f"  📌 当前能量约可免费执行 {usdt_transfers} 笔 USDT 转账（每笔约 {USDT_TRANSFER_ENERGY_COST:,} Energy）")
@@ -704,15 +695,12 @@ def format_account_bandwidth(result: dict) -> dict:
     net_used = result["net_used"]
     net_remaining = result["net_remaining"]
     total_remaining = result["total_remaining"]
-    frozen_trx = result.get("frozen_for_bandwidth_trx", 0)
     
     lines = [f"🌐 地址 {address} 带宽 (Bandwidth) 资源情况："]
     
-    # 免费带宽
     free_pct = (free_net_used / free_net_limit * 100) if free_net_limit > 0 else 0
     lines.append(f"  免费带宽: {free_net_remaining:,} / {free_net_limit:,} (已用 {free_net_used:,}, {free_pct:.1f}%)")
     
-    # 质押带宽
     if net_limit > 0:
         staked_pct = (net_used / net_limit * 100) if net_limit > 0 else 0
         lines.append(f"  质押带宽: {net_remaining:,} / {net_limit:,} (已用 {net_used:,}, {staked_pct:.1f}%)")
@@ -721,10 +709,6 @@ def format_account_bandwidth(result: dict) -> dict:
     
     lines.append(f"  总可用: {total_remaining:,}")
     
-    if frozen_trx > 0:
-        lines.append(f"  自质押: {frozen_trx:,.2f} TRX")
-    
-    # 给出转账参考
     trx_transfers = total_remaining // TRX_TRANSFER_BANDWIDTH_COST if total_remaining > 0 else 0
     usdt_transfers = total_remaining // USDT_TRANSFER_BANDWIDTH_COST if total_remaining > 0 else 0
     if total_remaining > 0:
