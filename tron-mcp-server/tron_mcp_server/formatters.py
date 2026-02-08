@@ -45,9 +45,17 @@ def format_gas_parameters(gas_price_sun: int, energy_price_sun: int = None) -> d
 
 
 def format_tx_status(
-    txid: str, tx_info: dict, confirmations: int = 0
+    txid: str, tx_info: dict, block_number: int = None, confirmations: int = 0
 ) -> dict:
     """格式化交易状态（含货币类型、金额、发送方、接收方等详细信息）"""
+    if isinstance(tx_info, (list, tuple)):
+        success = tx_info[0] if len(tx_info) > 0 else False
+        block_number = tx_info[1] if len(tx_info) > 1 else (block_number or 0)
+        tx_info = {"success": success, "block_number": block_number}
+    elif isinstance(tx_info, bool):
+        tx_info = {"success": tx_info, "block_number": block_number or 0}
+    elif tx_info is None:
+        tx_info = {}
     success = tx_info.get("success", False)
     block_number = tx_info.get("block_number", 0)
     token_type = tx_info.get("token_type", "未知")
@@ -677,3 +685,62 @@ def format_qrcode_result(result: dict) -> dict:
     )
     return {**result, "summary": summary}
 
+def format_account_energy(result: dict) -> dict:
+    """格式化账户能量信息"""
+    address = result["address"]
+    energy_limit = result["energy_limit"]
+    energy_used = result["energy_used"]
+    energy_remaining = result["energy_remaining"]
+    
+    usage_pct = (energy_used / energy_limit * 100) if energy_limit > 0 else 0
+    
+    lines = [f"⚡ 地址 {address} 能量 (Energy) 资源情况："]
+    
+    if energy_limit == 0 and energy_used == 0:
+        lines.append(f"  当前无能量额度（未质押 TRX 获取能量）")
+        lines.append(f"  执行合约操作（如 USDT 转账）将直接燃烧 TRX 支付能量费用")
+    else:
+        lines.append(f"  总额度: {energy_limit:,}")
+        lines.append(f"  已使用: {energy_used:,} ({usage_pct:.1f}%)")
+        lines.append(f"  剩余: {energy_remaining:,}")
+    
+    # USDT 转账参考
+    usdt_transfers = energy_remaining // 65000 if energy_remaining > 0 else 0
+    if usdt_transfers > 0:
+        lines.append(f"  📌 当前能量约可免费执行 {usdt_transfers} 笔 USDT 转账（每笔约 {65000:,} Energy）")
+    elif energy_limit > 0:
+        lines.append(f"  📌 能量已耗尽，USDT 转账将燃烧 TRX 支付费用")
+    
+    return {**result, "summary": "\n".join(lines)}
+
+
+def format_account_bandwidth(result: dict) -> dict:
+    """格式化账户带宽信息"""
+    address = result["address"]
+    free_net_limit = result["free_net_limit"]
+    free_net_used = result["free_net_used"]
+    free_net_remaining = result["free_net_remaining"]
+    net_limit = result["net_limit"]
+    net_used = result["net_used"]
+    net_remaining = result["net_remaining"]
+    total_remaining = result["total_remaining"]
+    
+    lines = [f"🌐 地址 {address} 带宽 (Bandwidth) 资源情况："]
+    
+    free_pct = (free_net_used / free_net_limit * 100) if free_net_limit > 0 else 0
+    lines.append(f"  免费带宽: {free_net_remaining:,} / {free_net_limit:,} (已用 {free_net_used:,}, {free_pct:.1f}%)")
+    
+    if net_limit > 0:
+        staked_pct = (net_used / net_limit * 100) if net_limit > 0 else 0
+        lines.append(f"  质押带宽: {net_remaining:,} / {net_limit:,} (已用 {net_used:,}, {staked_pct:.1f}%)")
+    else:
+        lines.append(f"  质押带宽: 无（未质押 TRX 获取带宽）")
+    
+    lines.append(f"  总可用: {total_remaining:,}")
+    
+    trx_transfers = total_remaining // 270 if total_remaining > 0 else 0
+    usdt_transfers = total_remaining // 350 if total_remaining > 0 else 0
+    if total_remaining > 0:
+        lines.append(f"  📌 当前带宽约可执行 {trx_transfers} 笔 TRX 转账(~{270}字节) 或 {usdt_transfers} 笔 USDT 转账(~{350}字节)")
+    
+    return {**result, "summary": "\n".join(lines)}

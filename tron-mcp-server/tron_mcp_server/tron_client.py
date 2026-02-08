@@ -733,3 +733,82 @@ def get_account_tokens(address: str) -> dict:
         "token_count": len(tokens),
         "tokens": tokens,
     }
+
+
+def get_account_energy(address: str) -> dict:
+    """
+    查询账户能量(Energy)资源情况
+    
+    通过 TronGrid /wallet/getaccountresource 接口获取真实链上数据。
+    
+    Args:
+        address: TRON 地址
+    
+    Returns:
+        包含 energy_limit, energy_used, energy_remaining 等字段的字典
+    """
+    from . import trongrid_client
+    
+    normalized = _normalize_address(address)
+    data = trongrid_client.get_account_resource(normalized)
+    
+    energy_limit = data.get("EnergyLimit", 0)
+    energy_used = data.get("EnergyUsed", 0)
+    energy_remaining = max(0, energy_limit - energy_used)
+    
+    return {
+        "address": normalized,
+        "energy_limit": energy_limit,
+        "energy_used": energy_used,
+        "energy_remaining": energy_remaining,
+        "total_energy_limit": data.get("TotalEnergyLimit", 0),
+        "total_energy_weight": data.get("TotalEnergyWeight", 0),
+    }
+
+
+def get_account_bandwidth(address: str) -> dict:
+    """
+    查询账户带宽(Bandwidth)资源情况
+    
+    通过 TronGrid /wallet/getaccountresource 接口获取真实链上数据。
+    
+    Args:
+        address: TRON 地址
+    
+    Returns:
+        包含 free_net_limit, free_net_used, net_limit, net_used 等字段的字典
+    """
+    from . import trongrid_client
+    
+    normalized = _normalize_address(address)
+    data = trongrid_client.get_account_resource(normalized)
+    
+    # 免费带宽
+    free_net_limit = data.get("freeNetLimit", 600)
+    free_net_used = data.get("freeNetUsed", 0)
+    free_net_remaining = max(0, free_net_limit - free_net_used)
+    
+    # 质押获得的带宽
+    net_limit = data.get("NetLimit", 0)
+    net_used = data.get("NetUsed", 0)
+    net_remaining = max(0, net_limit - net_used)
+    
+    # 汇总
+    total_limit = free_net_limit + net_limit
+    total_used = free_net_used + net_used
+    total_remaining = free_net_remaining + net_remaining
+    
+    return {
+        "address": normalized,
+        "free_net_limit": free_net_limit,
+        "free_net_used": free_net_used,
+        "free_net_remaining": free_net_remaining,
+        "net_limit": net_limit,
+        "net_used": net_used,
+        "net_remaining": net_remaining,
+        "total_bandwidth": total_limit,
+        "total_used": total_used,
+        "total_remaining": total_remaining,
+        "total_net_limit": data.get("TotalNetLimit", 0),
+        "total_net_weight": data.get("TotalNetWeight", 0),
+    }

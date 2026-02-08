@@ -140,15 +140,17 @@ python -m tron_mcp_server.server --sse
 | `tron_get_network_status` | 获取网络状态 | 无 |
 | `tron_check_account_safety` | 检查地址安全性（TRONSCAN 黑名单 + 多维风控） | `address` |
 | `tron_get_wallet_info` | 查看本地钱包地址和余额（不暴露私钥） | 无 |
+| `tron_get_account_energy` | 查询账户能量(Energy)资源情况 | `address` |
+| `tron_get_account_bandwidth` | 查询账户带宽(Bandwidth)资源情况 | `address` |
 
 ### 转账工具
 
 | 工具名 | 描述 | 参数 |
 |--------|------|------|
-| `tron_build_tx` | 构建未签名交易（含安全审计 + Gas 拦截） | `from_address`, `to_address`, `amount`, `token`, `force_execution` |
+| `tron_build_tx` | 构建未签名交易（含安全审计 + Gas 拦截） | `from_address`, `to_address`, `amount`, `token`, `force_execution`, `memo` |
 | `tron_sign_tx` | 构建并签名交易，不广播（需 `TRON_PRIVATE_KEY`） | `from_address`, `to_address`, `amount`, `token` |
 | `tron_broadcast_tx` | 广播已签名交易到 TRON 网络 | `signed_tx_json` |
-| `tron_transfer` | 🚀 一键转账闭环：安全检查 → 构建 → 签名 → 广播 | `to_address`, `amount`, `token`, `force_execution` |
+| `tron_transfer` | 🚀 一键转账闭环：安全检查 → 构建 → 签名 → 广播 | `to_address`, `amount`, `token`, `force_execution`, `memo` |
 
 ## 配套 Agent Skill
 
@@ -190,6 +192,8 @@ tron-mcp-server/
 ```
 
 ## 开发
+
+说明: 测试不再依赖 `tronpy`，本地签名与地址派生均由内置实现完成。
 
 ### 运行测试
 

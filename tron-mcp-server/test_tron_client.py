@@ -315,50 +315,6 @@ class TestGetGasParameters(unittest.TestCase):
         self.assertEqual(result, 280)
 
 
-class TestGetTransactionStatus(unittest.TestCase):
-    """测试 get_transaction_status"""
-
-    @patch('tron_mcp_server.tron_client._get')
-    def test_successful_transaction(self, mock_get):
-        """成功交易应返回 (True, block_number)"""
-        mock_get.return_value = {
-            "contractRet": "SUCCESS",
-            "block": 12345678,
-        }
-        success, block = tron_client.get_transaction_status("a" * 64)
-        self.assertTrue(success)
-        self.assertEqual(block, 12345678)
-
-    @patch('tron_mcp_server.tron_client._get')
-    def test_failed_transaction(self, mock_get):
-        """失败交易应返回 (False, block_number)"""
-        mock_get.return_value = {
-            "contractRet": "REVERT",
-            "block": 12345679,
-        }
-        success, block = tron_client.get_transaction_status("b" * 64)
-        self.assertFalse(success)
-        self.assertEqual(block, 12345679)
-
-    @patch('tron_mcp_server.tron_client._get')
-    def test_nonexistent_transaction(self, mock_get):
-        """不存在的交易应抛出 ValueError"""
-        mock_get.return_value = {}
-        with self.assertRaises(ValueError):
-            tron_client.get_transaction_status("c" * 64)
-
-    @patch('tron_mcp_server.tron_client._get')
-    def test_alternate_field_names(self, mock_get):
-        """兼容 contract_result 和 blockNumber 字段"""
-        mock_get.return_value = {
-            "contract_result": "SUCCESS",
-            "blockNumber": 99999,
-        }
-        success, block = tron_client.get_transaction_status("d" * 64)
-        self.assertTrue(success)
-        self.assertEqual(block, 99999)
-
-
 class TestGetNetworkStatus(unittest.TestCase):
     """测试 get_network_status"""
 

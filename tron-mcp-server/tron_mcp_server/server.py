@@ -88,7 +88,8 @@ def tron_build_tx(
     to_address: str,
     amount: float,
     token: str = "USDT",
-    force_execution: bool = False
+    force_execution: bool = False,
+    memo: str = "",
 ) -> dict:
     """
     构建未签名的转账交易。仅构建交易，不执行签名和广播。
@@ -106,6 +107,8 @@ def tron_build_tx(
         token: 代币类型，USDT 或 TRX，默认 USDT
         force_execution: 强制执行开关。当接收方存在风险时，只有设置为 True 才能继续构建交易。
                         仅在用户明确说"我知道有风险，但我就是要转"时才设置为 True。
+        memo: 交易备注/留言（可选）。会被编码为十六进制写入交易的 data 字段，
+              在区块链浏览器上可查看。例如："还你的饭钱"、"Invoice #1234"。
     
     Returns:
         包含 unsigned_tx, summary 的结果。
@@ -117,6 +120,7 @@ def tron_build_tx(
         "amount": amount,
         "token": token,
         "force_execution": force_execution,
+        "memo": memo,
     })
 
 
@@ -194,6 +198,7 @@ def tron_transfer(
     amount: float,
     token: str = "USDT",
     force_execution: bool = False,
+    memo: str = "",
 ) -> dict:
     """
     一键转账闭环：安全检查 → 构建交易 → 签名 → 广播。
@@ -214,6 +219,8 @@ def tron_transfer(
         token: 代币类型，USDT 或 TRX，默认 USDT
         force_execution: 强制执行开关。当接收方存在风险时，
                         只有设置为 True 才能继续转账。
+        memo: 交易备注/留言（可选）。会被编码为十六进制写入交易的 data 字段，
+              在区块链浏览器上可查看。例如："还你的饭钱"、"Invoice #1234"。
     
     Returns:
         包含 txid, result, summary 的转账结果
@@ -223,6 +230,7 @@ def tron_transfer(
         "amount": amount,
         "token": token,
         "force_execution": force_execution,
+        "memo": memo,
     })
 
 
@@ -318,6 +326,48 @@ def tron_get_account_tokens(address: str) -> dict:
         包含 token_count, tokens 列表和 summary 的结果
     """
     return call_router.call("get_account_tokens", {"address": address})
+
+
+@mcp.tool()
+def tron_get_account_energy(address: str) -> dict:
+    """
+    查询指定地址的能量 (Energy) 资源情况。
+
+    能量用于执行智能合约操作（如 USDT TRC20 转账），
+    可通过质押 TRX 获得，也可通过燃烧 TRX 支付。
+    如果账户有足够的能量，转账时无需额外支付 TRX 手续费。
+
+    每笔 USDT 转账大约消耗 29000~65000 Energy（取决于接收方是否已激活）。
+
+    Args:
+        address: TRON 地址（Base58 格式以 T 开头，或 Hex 格式以 0x41 开头）
+
+    Returns:
+        包含 energy_limit, energy_used, energy_remaining, summary 的结果
+    """
+    return call_router.call("get_account_energy", {"address": address})
+
+
+@mcp.tool()
+def tron_get_account_bandwidth(address: str) -> dict:
+    """
+    查询指定地址的带宽 (Bandwidth) 资源情况。
+
+    带宽用于支付交易的数据存储费用。
+    TRON 网络每个账户每天提供约 600 点免费带宽，
+    也可通过质押 TRX 获得更多带宽。
+
+    每笔 TRX 转账约消耗 270 字节带宽，USDT 转账约消耗 350 字节带宽。
+
+    Args:
+        address: TRON 地址（Base58 格式以 T 开头，或 Hex 格式以 0x41 开头）
+
+    Returns:
+        包含 free_net_limit, free_net_used, free_net_remaining,
+        net_limit, net_used, net_remaining,
+        total_bandwidth, total_used, total_remaining, summary 的结果
+    """
+    return call_router.call("get_account_bandwidth", {"address": address})
 
 
 @mcp.tool()
