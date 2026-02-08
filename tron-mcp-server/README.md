@@ -140,6 +140,8 @@ python -m tron_mcp_server.server --sse
 | `tron_get_network_status` | 获取网络状态 | 无 |
 | `tron_check_account_safety` | 检查地址安全性（TRONSCAN 黑名单 + 多维风控） | `address` |
 | `tron_get_wallet_info` | 查看本地钱包地址和余额（不暴露私钥） | 无 |
+| `tron_get_account_energy` | 查询账户能量(Energy)资源情况 | `address` |
+| `tron_get_account_bandwidth` | 查询账户带宽(Bandwidth)资源情况 | `address` |
 
 ### 转账工具
 

@@ -207,6 +207,8 @@ docker run --env-file .env -p 8765:8765 tron-mcp-server --sse
 | `tron_get_transaction_history` | 查询地址的交易历史记录（支持按代币类型筛选） | `address`, `limit`, `start`, `token` |
 | `tron_get_internal_transactions` | 查询地址的内部交易（合约内部调用产生的转账） | `address`, `limit`, `start` |
 | `tron_get_account_tokens` | 查询地址持有的所有代币列表（TRX + TRC20 + TRC10） | `address` |
+| `tron_get_account_energy` | 查询账户能量(Energy)资源情况 | `address` |
+| `tron_get_account_bandwidth` | 查询账户带宽(Bandwidth)资源情况 | `address` |
 
 ### 转账工具
 
@@ -644,6 +646,8 @@ docker run --env-file .env -p 8765:8765 tron-mcp-server --sse
 | `tron_get_transaction_history` | Query transaction history for an address (supports token type filtering) | `address`, `limit`, `start`, `token` |
 | `tron_get_internal_transactions` | Query internal transactions of an address (transfers from contract calls) | `address`, `limit`, `start` |
 | `tron_get_account_tokens` | Query all tokens held by an address (TRX + TRC20 + TRC10) | `address` |
+| `tron_get_account_energy` | Query account Energy resources | `address` |
+| `tron_get_account_bandwidth` | Query account Bandwidth resources | `address` |
 
 ### Transfer Tools
 
