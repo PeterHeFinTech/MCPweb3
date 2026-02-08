@@ -112,6 +112,7 @@ pip install -r requirements.txt
 
 ### 2. 配置环境变量
 
+bash
 ```bash
 cp .env.example .env
 # 编辑 .env 文件，按需配置：
@@ -120,8 +121,8 @@ cp .env.example .env
 # - TRONSCAN_API_KEY: 提高 API 限额（推荐）
 # - TRON_PRIVATE_KEY: 签名/广播交易时必需
 ```
-
-```windows cmd
+windows cmd
+```
 copy .env.example .env
 # 编辑 .env 文件，按需配置：
 # - TRON_NETWORK: 选择网络（mainnet 或 nile），默认 mainnet
