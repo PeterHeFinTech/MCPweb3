@@ -22,6 +22,7 @@ from unittest.mock import patch, MagicMock, PropertyMock
 import sys
 import os
 import json
+import secrets
 
 # 强制 UTF-8 编码
 if hasattr(sys.stdout, 'reconfigure'):
@@ -61,9 +62,7 @@ class TestKeyManager(unittest.TestCase):
 
     def test_address_starts_with_t(self):
         """使用 tronpy 生成的地址应以 T 开头（非 0x）"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
 
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server.key_manager import KeyManager
@@ -76,9 +75,7 @@ class TestKeyManager(unittest.TestCase):
 
     def test_sign_transaction_adds_signature(self):
         """签名后交易应包含 signature 字段"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
 
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server.key_manager import KeyManager
@@ -98,9 +95,7 @@ class TestKeyManager(unittest.TestCase):
 
     def test_sign_missing_txid_raises_error(self):
         """缺少 txID 时签名应抛出 ValueError"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
 
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server.key_manager import KeyManager
@@ -112,9 +107,7 @@ class TestKeyManager(unittest.TestCase):
 
     def test_sign_missing_raw_data_raises_error(self):
         """缺少 raw_data 时签名应抛出 ValueError"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
 
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server.key_manager import KeyManager

@@ -15,6 +15,7 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 import json
+import secrets
 
 # 强制 UTF-8 编码
 if hasattr(sys.stdout, 'reconfigure'):
@@ -97,9 +98,7 @@ class TestSignTxHandler(unittest.TestCase):
 
     def test_successful_signing(self):
         """正常签名成功场景"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
         
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server import call_router
@@ -124,9 +123,7 @@ class TestSignTxHandler(unittest.TestCase):
 
     def test_signature_format(self):
         """签名结果包含 signature 字段且为 130 个 hex 字符（65 bytes）"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
         
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server import call_router
@@ -151,9 +148,7 @@ class TestSignTxHandler(unittest.TestCase):
 
     def test_signed_tx_json_field(self):
         """签名结果包含 signed_tx_json 字段（JSON 字符串）"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
         
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server import call_router
@@ -176,9 +171,7 @@ class TestSignTxHandler(unittest.TestCase):
 
     def test_dict_input_support(self):
         """支持 dict 类型输入（不仅仅是 JSON 字符串）"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
         
         with patch.dict(os.environ, {"TRON_PRIVATE_KEY": hex_key}):
             from tron_mcp_server import call_router
@@ -199,9 +192,7 @@ class TestSignTxHandler(unittest.TestCase):
     @patch('tron_mcp_server.trongrid_client.broadcast_transaction')
     def test_sign_broadcast_integration(self, mock_broadcast):
         """签名 → 广播集成测试（mock broadcast）"""
-        from tronpy.keys import PrivateKey
-        pk = PrivateKey.random()
-        hex_key = pk.hex()
+        hex_key = secrets.token_hex(32)
         
         # Mock 广播成功
         mock_broadcast.return_value = {

@@ -315,6 +315,7 @@ class TestGetTrongridUrl(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=False):
             # Remove any existing env var
             os.environ.pop("TRONGRID_API_URL", None)
+            os.environ.pop("TRON_NETWORK", None)
             result = trongrid_client._get_trongrid_url()
             self.assertEqual(result, "https://api.trongrid.io")
 

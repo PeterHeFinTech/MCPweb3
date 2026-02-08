@@ -2,11 +2,6 @@
 
 import json
 
-# 资源消耗常量 (Resource Cost Constants)
-USDT_TRANSFER_ENERGY_COST = 65000  # 每笔 USDT 转账约消耗的 Energy
-TRX_TRANSFER_BANDWIDTH_COST = 270  # 每笔 TRX 转账约消耗的带宽（字节）
-USDT_TRANSFER_BANDWIDTH_COST = 350  # 每笔 USDT 转账约消耗的带宽（字节）
-
 
 def format_usdt_balance(address: str, balance_raw: int) -> dict:
     """
@@ -50,9 +45,17 @@ def format_gas_parameters(gas_price_sun: int, energy_price_sun: int = None) -> d
 
 
 def format_tx_status(
-    txid: str, tx_info: dict, confirmations: int = 0
+    txid: str, tx_info: dict, block_number: int = None, confirmations: int = 0
 ) -> dict:
     """格式化交易状态（含货币类型、金额、发送方、接收方等详细信息）"""
+    if isinstance(tx_info, (list, tuple)):
+        success = tx_info[0] if len(tx_info) > 0 else False
+        block_number = tx_info[1] if len(tx_info) > 1 else (block_number or 0)
+        tx_info = {"success": success, "block_number": block_number}
+    elif isinstance(tx_info, bool):
+        tx_info = {"success": tx_info, "block_number": block_number or 0}
+    elif tx_info is None:
+        tx_info = {}
     success = tx_info.get("success", False)
     block_number = tx_info.get("block_number", 0)
     token_type = tx_info.get("token_type", "未知")
@@ -656,6 +659,32 @@ def format_addressbook_list(result: dict) -> dict:
     return {**result, "summary": summary}
 
 
+# ============ QR Code 格式化 ============
+
+def format_qrcode_result(result: dict) -> dict:
+    """格式化 QR Code 生成结果"""
+    address = result["address"]
+    file_path = result["file_path"]
+    file_size = result.get("file_size", 0)
+
+    # 友好的文件大小显示
+    if file_size >= 1024:
+        size_text = f"{file_size / 1024:.1f} KB"
+    else:
+        size_text = f"{file_size} Bytes"
+
+    # 截断地址以提高可读性
+    address_display = f"{address[:10]}...{address[-8:]}"
+
+    summary = (
+        f"📱 已成功生成钱包地址二维码！\n"
+        f"地址: {address_display}\n"
+        f"文件: {file_path}\n"
+        f"大小: {size_text}\n"
+        f"其他人可以扫描此二维码获取你的钱包地址。"
+    )
+    return {**result, "summary": summary}
+
 def format_account_energy(result: dict) -> dict:
     """格式化账户能量信息"""
     address = result["address"]
@@ -676,9 +705,9 @@ def format_account_energy(result: dict) -> dict:
         lines.append(f"  剩余: {energy_remaining:,}")
     
     # USDT 转账参考
-    usdt_transfers = energy_remaining // USDT_TRANSFER_ENERGY_COST if energy_remaining > 0 else 0
+    usdt_transfers = energy_remaining // 65000 if energy_remaining > 0 else 0
     if usdt_transfers > 0:
-        lines.append(f"  📌 当前能量约可免费执行 {usdt_transfers} 笔 USDT 转账（每笔约 {USDT_TRANSFER_ENERGY_COST:,} Energy）")
+        lines.append(f"  📌 当前能量约可免费执行 {usdt_transfers} 笔 USDT 转账（每笔约 {65000:,} Energy）")
     elif energy_limit > 0:
         lines.append(f"  📌 能量已耗尽，USDT 转账将燃烧 TRX 支付费用")
     
@@ -709,9 +738,9 @@ def format_account_bandwidth(result: dict) -> dict:
     
     lines.append(f"  总可用: {total_remaining:,}")
     
-    trx_transfers = total_remaining // TRX_TRANSFER_BANDWIDTH_COST if total_remaining > 0 else 0
-    usdt_transfers = total_remaining // USDT_TRANSFER_BANDWIDTH_COST if total_remaining > 0 else 0
+    trx_transfers = total_remaining // 270 if total_remaining > 0 else 0
+    usdt_transfers = total_remaining // 350 if total_remaining > 0 else 0
     if total_remaining > 0:
-        lines.append(f"  📌 当前带宽约可执行 {trx_transfers} 笔 TRX 转账(~{TRX_TRANSFER_BANDWIDTH_COST}字节) 或 {usdt_transfers} 笔 USDT 转账(~{USDT_TRANSFER_BANDWIDTH_COST}字节)")
+        lines.append(f"  📌 当前带宽约可执行 {trx_transfers} 笔 TRX 转账(~{270}字节) 或 {usdt_transfers} 笔 USDT 转账(~{350}字节)")
     
     return {**result, "summary": "\n".join(lines)}
