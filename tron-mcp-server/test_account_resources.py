@@ -50,18 +50,16 @@ class TestAccountEnergyHandler(unittest.TestCase):
         self.assertIn("error", result)
         self.assertIn("地址", result.get("summary", ""))
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_zero_energy_account(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_zero_energy_account(self, mock_post):
         """查询零能量账户（未质押）"""
         from tron_mcp_server import call_router
         
-        # Mock TRONSCAN /api/accountv2 响应 - 无能量
-        mock_get.return_value = {
-            "energyLimit": 0,
-            "energyUsed": 0,
-            "remainingEnergy": 0,
-            "frozenForEnergy": 0,
-            "delegateFrozenForEnergy": 0
+        # Mock TronGrid /wallet/getaccountresource 响应 - 无能量
+        mock_post.return_value = {
+            "freeNetLimit": 600,
+            "freeNetUsed": 0,
+            # 注意：未质押的账户不会有 EnergyLimit 和 NetLimit 字段
         }
         
         result = call_router.call("get_account_energy", {
@@ -75,18 +73,21 @@ class TestAccountEnergyHandler(unittest.TestCase):
         self.assertIn("summary", result)
         self.assertIn("无能量额度", result["summary"])
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_account_with_energy(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_account_with_energy(self, mock_post):
         """查询有能量的账户"""
         from tron_mcp_server import call_router
         
-        # Mock TRONSCAN /api/accountv2 响应 - 有能量
-        mock_get.return_value = {
-            "energyLimit": 100000,
-            "energyUsed": 35000,
-            "remainingEnergy": 65000,
-            "frozenForEnergy": 10000000,  # 10 TRX (in SUN)
-            "delegateFrozenForEnergy": 0
+        # Mock TronGrid /wallet/getaccountresource 响应 - 有能量
+        mock_post.return_value = {
+            "freeNetLimit": 600,
+            "freeNetUsed": 50,
+            "EnergyLimit": 100000,
+            "EnergyUsed": 35000,
+            "NetLimit": 5000,
+            "NetUsed": 100,
+            "TotalEnergyLimit": 90000000000,
+            "TotalEnergyWeight": 13369831825062,
         }
         
         result = call_router.call("get_account_energy", {
@@ -97,22 +98,19 @@ class TestAccountEnergyHandler(unittest.TestCase):
         self.assertEqual(result["energy_limit"], 100000)
         self.assertEqual(result["energy_used"], 35000)
         self.assertEqual(result["energy_remaining"], 65000)
-        self.assertEqual(result["frozen_for_energy_trx"], 10.0)
         self.assertIn("summary", result)
         self.assertIn("65,000", result["summary"])
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_energy_exhausted(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_energy_exhausted(self, mock_post):
         """查询能量耗尽的账户"""
         from tron_mcp_server import call_router
         
-        # Mock TRONSCAN /api/accountv2 响应 - 能量耗尽
-        mock_get.return_value = {
-            "energyLimit": 100000,
-            "energyUsed": 100000,
-            "remainingEnergy": 0,
-            "frozenForEnergy": 10000000,
-            "delegateFrozenForEnergy": 0
+        # Mock TronGrid /wallet/getaccountresource 响应 - 能量耗尽
+        mock_post.return_value = {
+            "freeNetLimit": 600,
+            "EnergyLimit": 100000,
+            "EnergyUsed": 100000,
         }
         
         result = call_router.call("get_account_energy", {
@@ -124,17 +122,15 @@ class TestAccountEnergyHandler(unittest.TestCase):
         self.assertIn("summary", result)
         self.assertIn("能量已耗尽", result["summary"])
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_energy_with_usdt_transfer_estimate(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_energy_with_usdt_transfer_estimate(self, mock_post):
         """有能量账户的 summary 应包含 USDT 转账估算"""
         from tron_mcp_server import call_router
         
-        mock_get.return_value = {
-            "energyLimit": 200000,
-            "energyUsed": 5000,
-            "remainingEnergy": 195000,
-            "frozenForEnergy": 20000000,
-            "delegateFrozenForEnergy": 0
+        mock_post.return_value = {
+            "freeNetLimit": 600,
+            "EnergyLimit": 200000,
+            "EnergyUsed": 5000,
         }
         
         result = call_router.call("get_account_energy", {
@@ -169,19 +165,16 @@ class TestAccountBandwidthHandler(unittest.TestCase):
         self.assertIn("error", result)
         self.assertIn("地址", result.get("summary", ""))
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_only_free_bandwidth(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_only_free_bandwidth(self, mock_post):
         """仅有免费带宽的账户"""
         from tron_mcp_server import call_router
         
-        # Mock TRONSCAN /api/accountv2 响应 - 仅免费带宽
-        mock_get.return_value = {
+        # Mock TronGrid /wallet/getaccountresource 响应 - 仅免费带宽
+        # 未质押的账户不会有 NetLimit 字段
+        mock_post.return_value = {
             "freeNetLimit": 600,
             "freeNetUsed": 100,
-            "netLimit": 0,
-            "netUsed": 0,
-            "freezeAmountForBandwidth": 0,
-            "acquiredDelegateFrozenForBandWidth": 0
         }
         
         result = call_router.call("get_account_bandwidth", {
@@ -198,19 +191,17 @@ class TestAccountBandwidthHandler(unittest.TestCase):
         self.assertIn("summary", result)
         self.assertIn("免费带宽", result["summary"])
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_with_staked_bandwidth(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_with_staked_bandwidth(self, mock_post):
         """有质押带宽的账户"""
         from tron_mcp_server import call_router
         
-        # Mock TRONSCAN /api/accountv2 响应 - 有质押带宽
-        mock_get.return_value = {
+        # Mock TronGrid /wallet/getaccountresource 响应 - 有质押带宽
+        mock_post.return_value = {
             "freeNetLimit": 600,
             "freeNetUsed": 50,
-            "netLimit": 5000,
-            "netUsed": 1000,
-            "freezeAmountForBandwidth": 100000000,  # 100 TRX (in SUN)
-            "acquiredDelegateFrozenForBandWidth": 0
+            "NetLimit": 5000,
+            "NetUsed": 1000,
         }
         
         result = call_router.call("get_account_bandwidth", {
@@ -223,22 +214,19 @@ class TestAccountBandwidthHandler(unittest.TestCase):
         self.assertEqual(result["net_remaining"], 4000)
         self.assertEqual(result["total_bandwidth"], 5600)
         self.assertEqual(result["total_remaining"], 4550)
-        self.assertEqual(result["frozen_for_bandwidth_trx"], 100.0)
         self.assertIn("summary", result)
         self.assertIn("质押带宽", result["summary"])
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_bandwidth_transfer_estimate(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_bandwidth_transfer_estimate(self, mock_post):
         """带宽 summary 应包含转账估算"""
         from tron_mcp_server import call_router
         
-        mock_get.return_value = {
+        mock_post.return_value = {
             "freeNetLimit": 600,
             "freeNetUsed": 0,
-            "netLimit": 2000,
-            "netUsed": 100,
-            "freezeAmountForBandwidth": 50000000,
-            "acquiredDelegateFrozenForBandWidth": 0
+            "NetLimit": 2000,
+            "NetUsed": 100,
         }
         
         result = call_router.call("get_account_bandwidth", {
@@ -252,18 +240,18 @@ class TestAccountBandwidthHandler(unittest.TestCase):
         self.assertIn("TRX 转账", result["summary"])
         self.assertIn("USDT 转账", result["summary"])
 
-    @patch('tron_mcp_server.tron_client._get')
-    def test_bandwidth_with_all_fields(self, mock_get):
+    @patch('tron_mcp_server.trongrid_client._post')
+    def test_bandwidth_with_all_fields(self, mock_post):
         """测试所有字段都正确返回"""
         from tron_mcp_server import call_router
         
-        mock_get.return_value = {
+        mock_post.return_value = {
             "freeNetLimit": 600,
             "freeNetUsed": 200,
-            "netLimit": 3000,
-            "netUsed": 500,
-            "freezeAmountForBandwidth": 75000000,  # 75 TRX
-            "acquiredDelegateFrozenForBandWidth": 25000000  # 25 TRX delegated
+            "NetLimit": 3000,
+            "NetUsed": 500,
+            "TotalNetLimit": 43200000000,
+            "TotalNetWeight": 84687233463517,
         }
         
         result = call_router.call("get_account_bandwidth", {
@@ -280,8 +268,6 @@ class TestAccountBandwidthHandler(unittest.TestCase):
         self.assertEqual(result["total_bandwidth"], 3600)
         self.assertEqual(result["total_used"], 700)
         self.assertEqual(result["total_remaining"], 2900)
-        self.assertEqual(result["frozen_for_bandwidth_trx"], 75.0)
-        self.assertEqual(result["delegated_for_bandwidth_trx"], 25.0)
 
 
 class TestFormatters(unittest.TestCase):
@@ -296,8 +282,6 @@ class TestFormatters(unittest.TestCase):
             "energy_limit": 0,
             "energy_used": 0,
             "energy_remaining": 0,
-            "frozen_for_energy_trx": 0,
-            "delegated_for_energy_trx": 0
         }
         
         formatted = formatters.format_account_energy(result)
@@ -314,14 +298,11 @@ class TestFormatters(unittest.TestCase):
             "energy_limit": 130000,
             "energy_used": 0,
             "energy_remaining": 130000,
-            "frozen_for_energy_trx": 50.0,
-            "delegated_for_energy_trx": 0
         }
         
         formatted = formatters.format_account_energy(result)
         self.assertIn("summary", formatted)
         self.assertIn("130,000", formatted["summary"])
-        self.assertIn("50.00 TRX", formatted["summary"])
         self.assertIn("USDT 转账", formatted["summary"])
 
     def test_format_account_bandwidth_free_only(self):
@@ -339,8 +320,6 @@ class TestFormatters(unittest.TestCase):
             "total_bandwidth": 600,
             "total_used": 100,
             "total_remaining": 500,
-            "frozen_for_bandwidth_trx": 0,
-            "delegated_for_bandwidth_trx": 0
         }
         
         formatted = formatters.format_account_bandwidth(result)
@@ -364,15 +343,12 @@ class TestFormatters(unittest.TestCase):
             "total_bandwidth": 10600,
             "total_used": 2000,
             "total_remaining": 8600,
-            "frozen_for_bandwidth_trx": 200.0,
-            "delegated_for_bandwidth_trx": 0
         }
         
         formatted = formatters.format_account_bandwidth(result)
         self.assertIn("summary", formatted)
         self.assertIn("质押带宽", formatted["summary"])
         self.assertIn("8,000", formatted["summary"])
-        self.assertIn("200.00 TRX", formatted["summary"])
         self.assertIn("TRX 转账", formatted["summary"])
 
 
